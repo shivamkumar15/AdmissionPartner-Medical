@@ -1736,7 +1736,7 @@ function TopCollegeCard({
     target: containerRef,
     offset: ['start end', 'end start'],
   });
-  const targetScale = 1 - (totalCards - 1 - index) * 0.03;
+  const targetScale = Math.max(0.68, 1 - (totalCards - 1 - index) * 0.06);
   const scale = useTransform(scrollYProgress, [0, 1], [1, targetScale]);
   const uniqueImages = [...new Set(college.images)].filter(Boolean);
   const imageA = [uniqueImages[0]];
