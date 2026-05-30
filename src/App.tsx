@@ -154,16 +154,6 @@ const aiimsPreviewColleges: CollegePreview[] = [
   { name: 'AIIMS Jodhpur', state: 'Rajasthan', images: getAiimsPreviewImages(3) },
   { name: 'AIIMS Patna', state: 'Bihar', images: getAiimsPreviewImages(0) },
   { name: 'AIIMS Raipur', state: 'Chhattisgarh', images: getAiimsPreviewImages(1) },
-  { name: 'AIIMS Rishikesh', state: 'Uttarakhand', images: getAiimsPreviewImages(2) },
-  { name: 'AIIMS Nagpur', state: 'Maharashtra', images: getAiimsPreviewImages(3) },
-  { name: 'AIIMS Bathinda', state: 'Punjab', images: getAiimsPreviewImages(0) },
-  { name: 'AIIMS Deoghar', state: 'Jharkhand', images: getAiimsPreviewImages(1) },
-  { name: 'AIIMS Gorakhpur', state: 'Uttar Pradesh', images: getAiimsPreviewImages(2) },
-  { name: 'AIIMS Kalyani', state: 'West Bengal', images: getAiimsPreviewImages(3) },
-  { name: 'AIIMS Mangalagiri', state: 'Andhra Pradesh', images: getAiimsPreviewImages(0) },
-  { name: 'AIIMS Rae Bareli', state: 'Uttar Pradesh', images: getAiimsPreviewImages(1) },
-  { name: 'AIIMS Bibinagar', state: 'Telangana', images: getAiimsPreviewImages(2) },
-  { name: 'AIIMS Rajkot', state: 'Gujarat', images: getAiimsPreviewImages(3) },
 ];
 
 const aboutDecorations = [
