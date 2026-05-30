@@ -142,6 +142,30 @@ type CollegePreview = {
   state: string;
 };
 
+const getAiimsPreviewImages = (offset: number) => {
+  const images = marqueeColleges[0]?.images ?? [];
+  return [...images.slice(offset), ...images.slice(0, offset)];
+};
+
+const aiimsPreviewColleges: CollegePreview[] = [
+  { name: 'AIIMS New Delhi', state: 'New Delhi', images: getAiimsPreviewImages(0) },
+  { name: 'AIIMS Bhopal', state: 'Madhya Pradesh', images: getAiimsPreviewImages(1) },
+  { name: 'AIIMS Bhubaneswar', state: 'Odisha', images: getAiimsPreviewImages(2) },
+  { name: 'AIIMS Jodhpur', state: 'Rajasthan', images: getAiimsPreviewImages(3) },
+  { name: 'AIIMS Patna', state: 'Bihar', images: getAiimsPreviewImages(0) },
+  { name: 'AIIMS Raipur', state: 'Chhattisgarh', images: getAiimsPreviewImages(1) },
+  { name: 'AIIMS Rishikesh', state: 'Uttarakhand', images: getAiimsPreviewImages(2) },
+  { name: 'AIIMS Nagpur', state: 'Maharashtra', images: getAiimsPreviewImages(3) },
+  { name: 'AIIMS Bathinda', state: 'Punjab', images: getAiimsPreviewImages(0) },
+  { name: 'AIIMS Deoghar', state: 'Jharkhand', images: getAiimsPreviewImages(1) },
+  { name: 'AIIMS Gorakhpur', state: 'Uttar Pradesh', images: getAiimsPreviewImages(2) },
+  { name: 'AIIMS Kalyani', state: 'West Bengal', images: getAiimsPreviewImages(3) },
+  { name: 'AIIMS Mangalagiri', state: 'Andhra Pradesh', images: getAiimsPreviewImages(0) },
+  { name: 'AIIMS Rae Bareli', state: 'Uttar Pradesh', images: getAiimsPreviewImages(1) },
+  { name: 'AIIMS Bibinagar', state: 'Telangana', images: getAiimsPreviewImages(2) },
+  { name: 'AIIMS Rajkot', state: 'Gujarat', images: getAiimsPreviewImages(3) },
+];
+
 const aboutDecorations = [
   {
     src: 'https://shrug-person-78902957.figma.site/_components/v2/ebb2b8f25d8e24d5f0a5ca8af4c950de81aa2fd7/moon_icon.11395d36.png',
@@ -1769,7 +1793,7 @@ function TopCollegeCard({
 }
 
 function ProjectsSection() {
-  const [aiimsColleges, setAiimsColleges] = useState<CollegePreview[]>([]);
+  const [aiimsColleges, setAiimsColleges] = useState<CollegePreview[]>(aiimsPreviewColleges);
 
   useEffect(() => {
     let cancelled = false;
@@ -1781,8 +1805,8 @@ function ProjectsSection() {
           return;
         }
 
-        const fallbackImages = marqueeColleges[0]?.images ?? [];
-        const nextColleges = rows
+        const fallbackImages = aiimsPreviewColleges[0]?.images ?? [];
+        const supabaseAiimsColleges = rows
           .map((row, index) => mapCollegeRow(row, 'colleges', index))
           .filter((college): college is CollageCollege => {
             if (!college) {
@@ -1802,10 +1826,15 @@ function ProjectsSection() {
           })
           .sort((left, right) => left.name.localeCompare(right.name));
 
-        setAiimsColleges(nextColleges.length ? nextColleges : marqueeColleges.slice(0, 1));
+        const mergedColleges = new Map(aiimsPreviewColleges.map((college) => [normalizeKey(college.name), college]));
+        for (const college of supabaseAiimsColleges) {
+          mergedColleges.set(normalizeKey(college.name), college);
+        }
+
+        setAiimsColleges([...mergedColleges.values()].sort((left, right) => left.name.localeCompare(right.name)));
       } catch {
         if (!cancelled) {
-          setAiimsColleges(marqueeColleges.slice(0, 1));
+          setAiimsColleges(aiimsPreviewColleges);
         }
       }
     };
@@ -1817,7 +1846,7 @@ function ProjectsSection() {
     };
   }, []);
 
-  const topMedicalColleges = aiimsColleges.length ? aiimsColleges : marqueeColleges.slice(0, 1);
+  const topMedicalColleges = aiimsColleges.length ? aiimsColleges : aiimsPreviewColleges;
 
   return (
     <section
