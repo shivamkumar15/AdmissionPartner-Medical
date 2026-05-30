@@ -14,12 +14,20 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const ADMIN_EMAIL = 'kullucobra@gmail.com';
 const FEEDBACK_TABLE = 'feedbacks';
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY');
+function getSupabaseConfig() {
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
+  }
+
+  return {
+    key: SUPABASE_PUBLISHABLE_KEY,
+    url: SUPABASE_URL,
+  };
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const supabase = isSupabaseConfigured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 const TESTIMONIAL_ROTATE_INTERVAL_MS = 3200;
 const proxyImage = (url: string) =>
   `https://images.higgs.ai/?default=1&output=webp&url=${encodeURIComponent(url)}&w=1200&q=85`;
@@ -555,10 +563,11 @@ function mapCollegeRow(row: CollegeTableRow, sourceTable: string, index: number)
 }
 
 async function fetchColleges() {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`, {
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
   });
 
@@ -600,10 +609,11 @@ function mapFeedbackRow(row: FeedbackRow, index: number): StudentTestimonial | n
 }
 
 async function fetchPublishedFeedbacks() {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${FEEDBACK_TABLE}?select=*&is_published=eq.true&order=created_at.desc`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?select=*&is_published=eq.true&order=created_at.desc`, {
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
   });
 
@@ -620,10 +630,11 @@ async function fetchPublishedFeedbacks() {
 }
 
 async function fetchAdminFeedbacks() {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${FEEDBACK_TABLE}?select=*&order=created_at.desc`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?select=*&order=created_at.desc`, {
     headers: {
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
   });
 
@@ -640,13 +651,14 @@ async function fetchAdminFeedbacks() {
 }
 
 async function createFeedbackSubmission(form: FeedbackFormState) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${FEEDBACK_TABLE}`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
       name: form.name,
@@ -666,13 +678,14 @@ async function createFeedbackSubmission(form: FeedbackFormState) {
 }
 
 async function updateFeedbackApproval(id: string, isPublished: boolean) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${FEEDBACK_TABLE}?id=eq.${encodeURIComponent(id)}`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?id=eq.${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({ is_published: isPublished }),
   });
@@ -690,13 +703,14 @@ async function updateFeedbackApproval(id: string, isPublished: boolean) {
 }
 
 async function createAppointment(form: AppointmentFormState) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/appointments`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/appointments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
       full_name: form.fullName,
@@ -716,12 +730,13 @@ async function createAppointment(form: AppointmentFormState) {
 }
 
 async function fetchAppointments() {
+  const { key, url } = getSupabaseConfig();
   const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/appointments?select=id,full_name,email,phone,preferred_date,message,created_at,admin_email&order=created_at.desc`,
+    `${url}/rest/v1/appointments?select=id,full_name,email,phone,preferred_date,message,created_at,admin_email&order=created_at.desc`,
     {
       headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
       },
     },
   );
@@ -735,12 +750,13 @@ async function fetchAppointments() {
 }
 
 async function fetchAdminColleges() {
+  const { key, url } = getSupabaseConfig();
   const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`,
+    `${url}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`,
     {
       headers: {
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
       },
     },
   );
@@ -754,13 +770,14 @@ async function fetchAdminColleges() {
 }
 
 async function updateCollegeById(college: CollegeAdminRow) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/colleges?id=eq.${encodeURIComponent(String(college.id))}`, {
+  const { key, url } = getSupabaseConfig();
+  const response = await fetch(`${url}/rest/v1/colleges?id=eq.${encodeURIComponent(String(college.id))}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
-      apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
       name: college.name ?? '',
@@ -786,6 +803,10 @@ async function updateCollegeById(college: CollegeAdminRow) {
 }
 
 async function signInAdminWithGoogle() {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
+  }
+
   const redirectTo = `${window.location.origin}/admin`;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -798,6 +819,10 @@ async function signInAdminWithGoogle() {
 }
 
 async function signOutAdmin() {
+  if (!supabase) {
+    throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
+  }
+
   const { error } = await supabase.auth.signOut();
 
   if (error) {
@@ -1499,7 +1524,7 @@ function TestimonialsSection() {
     void loadFeedbacks();
 
     const channel = supabase
-      .channel('homepage-feedbacks')
+      ?.channel('homepage-feedbacks')
       .on('postgres_changes', { event: '*', schema: 'public', table: FEEDBACK_TABLE }, () => {
         void loadFeedbacks();
       })
@@ -1507,7 +1532,9 @@ function TestimonialsSection() {
 
     return () => {
       mounted = false;
-      void supabase.removeChannel(channel);
+      if (channel) {
+        void supabase?.removeChannel(channel);
+      }
     };
   }, []);
 
@@ -1962,6 +1989,14 @@ function AdminPage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!supabase) {
+      setError('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
+      setAuthReady(true);
+      return () => {
+        isMounted = false;
+      };
+    }
 
     void supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!isMounted) {
