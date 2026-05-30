@@ -1,2 +1,8 @@
 node_modules/
 dist/
+scripts/output/
+
+# Local environment files. Never commit real secrets.
+.env
+.env.*
+!.env.example

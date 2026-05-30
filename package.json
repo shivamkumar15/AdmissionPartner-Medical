@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "import:colleges": "node scripts/import-colleges-to-supabase.mjs",
+    "images:apply": "node scripts/update-college-images.mjs --apply",
+    "images:plan": "node scripts/update-college-images.mjs",
     "lint": "echo 'No lint script'",
     "preview": "vite preview"
   },

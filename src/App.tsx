@@ -10,10 +10,15 @@ const FADE_DURATION_MS = 500;
 const LOOP_RESET_DELAY_MS = 100;
 const FADE_OUT_THRESHOLD_SECONDS = 0.55;
 const MOTION_EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
-const SUPABASE_URL = 'https://nisdlcfkjuwwuqbvwooe.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_SS4TqL4tzLENvurNuLTH-Q_pp3Ayci_';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const ADMIN_EMAIL = 'kullucobra@gmail.com';
 const FEEDBACK_TABLE = 'feedbacks';
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY');
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const TESTIMONIAL_ROTATE_INTERVAL_MS = 3200;
 const proxyImage = (url: string) =>
@@ -122,6 +127,12 @@ const marqueeColleges = [
     ],
   },
 ];
+
+type CollegePreview = {
+  images: string[];
+  name: string;
+  state: string;
+};
 
 const aboutDecorations = [
   {
@@ -267,227 +278,6 @@ const blockedCollegeImageUrls = new Set([
   'https://pgimer.edu.in/PGIMER_PORTAL/PGIMERPORTAL/Images/newslider/5.jpg',
 ]);
 
-const knownCollegeRankings = new Map<string, number>([
-  [normalizeKey('All India Institute of Medical Sciences Delhi'), 1],
-  [normalizeKey('AIIMS New Delhi'), 1],
-  [normalizeKey('AIIMS, New Delhi'), 1],
-  [normalizeKey('Post Graduate Institute of Medical Education and Research'), 2],
-  [normalizeKey('PGIMER'), 2],
-  [normalizeKey('Christian Medical College'), 3],
-  [normalizeKey('Christian Medical College Vellore'), 3],
-  [normalizeKey('Christian Medical College, Vellore, 53,000'), 3],
-  [normalizeKey('Jawaharlal Institute of Post Graduate Medical Education and Research'), 5],
-  [normalizeKey('JIPMER'), 5],
-  [normalizeKey('JIPMER Puducherry'), 5],
-  [normalizeKey('Sanjay Gandhi Postgraduate Institute of Medical Sciences'), 6],
-  [normalizeKey('Banaras Hindu University'), 7],
-  [normalizeKey('Institute of Medical Sciences BHU'), 7],
-  [normalizeKey('Institute of Medical Sciences'), 7],
-  [normalizeKey('IMS BHU Varanasi'), 7],
-  [normalizeKey('Amrita Vishwa Vidyapeetham'), 8],
-  [normalizeKey('Amrita Inst. of Med. Sc., Kochi, Kerala'), 8],
-  [normalizeKey('Kasturba Medical College Manipal'), 9],
-  [normalizeKey('Kasturba Medical College'), 9],
-  [normalizeKey('Kasturba Medical College, Manipal, Karnataka'), 9],
-  [normalizeKey('Madras Medical College and Government General Hospital Chennai'), 10],
-  [normalizeKey('Madras Medical College'), 10],
-  [normalizeKey('Madras MC, Chennai'), 10],
-  [normalizeKey('Dr. D. Y. Patil Vidyapeeth'), 11],
-  [normalizeKey('Dr. DY Patil, Pune, Maharastra'), 11],
-  [normalizeKey('Saveetha Institute of Medical and Technical Sciences'), 12],
-  [normalizeKey('Saveetha Medical College, Chennai, Tamil Nadu'), 12],
-  [normalizeKey('Sree Chitra Tirunal Institute for Medical Sciences and Technology'), 13],
-  [normalizeKey('All India Institute of Medical Sciences Rishikesh'), 14],
-  [normalizeKey('All India Institute of Medical Sciences Bhubaneswar'), 15],
-  [normalizeKey('AIIMS, Bhubaneshwar'), 15],
-  [normalizeKey('All India Institute of Medical Sciences Jodhpur'), 16],
-  [normalizeKey('Vardhman Mahavir Medical College & Safdarjung Hospital'), 17],
-  [normalizeKey('VMMC & Safdarjung Hospital, New Delhi'), 17],
-  [normalizeKey('S.R.M. Institute of Science and Technology'), 18],
-  [normalizeKey('SRM Med Col. Chennai, Tamil Nadu'), 18],
-  [normalizeKey('King George`s Medical University'), 19],
-  [normalizeKey("King George's Medical University"), 19],
-  [normalizeKey('King George Medical University'), 19],
-  [normalizeKey('King George Med Coll. Lucknow'), 19],
-  [normalizeKey('Sri Ramachandra Institute of Higher Education and Research'), 20],
-  [normalizeKey('Sri Ramachandra, Chennai, Tamil Nadu'), 20],
-  [normalizeKey('Siksha O Anusandhan'), 21],
-  [normalizeKey('IMS SUM Host, Bhubneshwar, Odisha'), 21],
-  [normalizeKey('Institute of Post Graduate Medical Education and Research'), 22],
-  [normalizeKey('IPGMER, Kolkata'), 22],
-  [normalizeKey('Datta Meghe Institute of Higher Education and Research'), 23],
-  [normalizeKey('Datta Megha IMS, Nagpur, Maharastra'), 23],
-  [normalizeKey('Maulana Azad Medical College'), 24],
-  [normalizeKey('Maulana Azad MC, New Delhi'), 24],
-  [normalizeKey('All India Institute of Medical Sciences Patna'), 26],
-  [normalizeKey('AIIMS, Patna'), 26],
-  [normalizeKey('Aligarh Muslim University'), 27],
-  [normalizeKey('JNMC AMU Aligarh'), 27],
-  [normalizeKey("St. John's Medical College"), 28],
-  [normalizeKey('St Johns Medical College, Bangalore'), 28],
-  [normalizeKey('Lady Hardinge Medical College'), 29],
-  [normalizeKey('Lady Hardinge MC, New Delhi'), 29],
-  [normalizeKey('Armed Force Medical College'), 30],
-  [normalizeKey('Armed Forces Medical College'), 30],
-  [normalizeKey('All India Institute of Medical Sciences Bhopal'), 31],
-  [normalizeKey('AIIMS Bhopal'), 31],
-  [normalizeKey('University College of Medical Sciences'), 32],
-  [normalizeKey('UCMS, New Delhi'), 32],
-  [normalizeKey('Kasturba Medical College, Mangalore'), 33],
-  [normalizeKey('Kasturba Medical College Mangalore'), 33],
-  [normalizeKey('GMC & HOSP Chandigarh'), 35],
-  [normalizeKey('Maharishi Markandeshwar (Deemed to be University)'), 35],
-  [normalizeKey('MM Inst. Mullana, Haryana'), 35],
-  [normalizeKey('Jamia Hamdard'), 37],
-  [normalizeKey('Hamdard - HIMSR, New Delhi, Delhi'), 37],
-  [normalizeKey('All India Institute of Medical Sciences Raipur'), 38],
-  [normalizeKey('AIIMS, Raipur'), 38],
-  [normalizeKey('JSS Medical College, Mysore'), 39],
-  [normalizeKey('JSS Medical College, Jagadguru, Karnataka'), 39],
-  [normalizeKey('Dayanand Medical College'), 40],
-  [normalizeKey('Dayanand Medical College & Hospital, Ludhiana, 10,41,000'), 40],
-  [normalizeKey('PSG Institute of Medical Sciences and Research'), 41],
-  [normalizeKey('PSG Institute of Medical Sciences & Research, Coimbatore, 13,50,000'), 41],
-  [normalizeKey('Government Medical College, Thiruvananthapuram'), 42],
-  [normalizeKey('Govt. MC, Thiruvananthapuram'), 42],
-  [normalizeKey('Medical College, Kolkata'), 44],
-  [normalizeKey('M. S. Ramaiah Medical College'), 46],
-  [normalizeKey('M.S. Ramaiah Medical College, Bangalore'), 46],
-  [normalizeKey('Mahatma Gandhi Medical College and Research Institute'), 47],
-  [normalizeKey('Mahatma Gandhi, Puducherry, Pondicherry'), 47],
-  [normalizeKey('Osmania Medical College'), 48],
-  [normalizeKey('Osmania MC, Koti'), 48],
-  [normalizeKey('Christian Medical College, Ludhiana, 6,60,000'), 49],
-  [normalizeKey('Christian Medical College Ludhiana'), 49],
-  [normalizeKey('Pandit Bhagwat Dayal Sharma University of Health Sciences'), 50],
-  [normalizeKey('PT. B.D. Sharma PGIMS, Rohtak'), 50],
-]);
-
-function getKnownCollegeRanking(name: string) {
-  const normalizedName = normalizeKey(name);
-
-  return knownCollegeRankings.get(normalizedName);
-}
-
-function parseCollegeYear(year: string) {
-  const parsedYear = Number.parseInt(year.replace(/[^0-9]/g, ''), 10);
-
-  if (!Number.isFinite(parsedYear) || parsedYear < 1800 || parsedYear > new Date().getFullYear()) {
-    return null;
-  }
-
-  return parsedYear;
-}
-
-function parseCollegeFee(fees: string) {
-  const parsedFee = Number.parseInt(fees.replace(/[^0-9]/g, ''), 10);
-  return Number.isFinite(parsedFee) ? parsedFee : null;
-}
-
-function getCollegeTypeTier(type: string) {
-  const normalizedType = normalizeKey(type);
-
-  if (normalizedType.includes('government') || normalizedType.includes('govt')) {
-    return 4;
-  }
-
-  if (normalizedType.includes('deemed')) {
-    return 3;
-  }
-
-  if (normalizedType.includes('private')) {
-    return 2;
-  }
-
-  if (normalizedType) {
-    return 1;
-  }
-
-  return 0;
-}
-
-function getCollegeNameBonus(name: string) {
-  const normalizedName = normalizeKey(name);
-  let bonus = 0;
-
-  if (normalizedName.includes('aiims')) {
-    bonus += 240;
-  }
-
-  if (normalizedName.includes('medicalcollege')) {
-    bonus += 80;
-  }
-
-  if (normalizedName.includes('university')) {
-    bonus += 40;
-  }
-
-  if (normalizedName.includes('hospital')) {
-    bonus += 20;
-  }
-
-  if (normalizedName.includes('institute')) {
-    bonus += 20;
-  }
-
-  return bonus;
-}
-
-function getEstimatedCollegeScore(college: Pick<CollageCollege, 'fees' | 'name' | 'type' | 'year'>) {
-  const establishedYear = parseCollegeYear(college.year);
-  const annualFees = parseCollegeFee(college.fees);
-  const ageScore = establishedYear ? Math.max(0, 2026 - establishedYear) : 0;
-  const feeScore = annualFees ? Math.max(0, 250 - Math.min(250, annualFees / 50000)) : 0;
-
-  return getCollegeTypeTier(college.type) * 1000 + ageScore * 3 + feeScore + getCollegeNameBonus(college.name);
-}
-
-function compareCollegesForBestEffortRanking(left: CollageCollege, right: CollageCollege) {
-  if (left.nirfRanking !== null && right.nirfRanking !== null) {
-    return left.nirfRanking - right.nirfRanking || left.name.localeCompare(right.name);
-  }
-
-  if (left.nirfRanking !== null) {
-    return -1;
-  }
-
-  if (right.nirfRanking !== null) {
-    return 1;
-  }
-
-  const scoreDifference = getEstimatedCollegeScore(right) - getEstimatedCollegeScore(left);
-
-  if (scoreDifference !== 0) {
-    return scoreDifference;
-  }
-
-  const leftYear = parseCollegeYear(left.year) ?? Number.MAX_SAFE_INTEGER;
-  const rightYear = parseCollegeYear(right.year) ?? Number.MAX_SAFE_INTEGER;
-
-  if (leftYear !== rightYear) {
-    return leftYear - rightYear;
-  }
-
-  const leftFee = parseCollegeFee(left.fees) ?? Number.MAX_SAFE_INTEGER;
-  const rightFee = parseCollegeFee(right.fees) ?? Number.MAX_SAFE_INTEGER;
-
-  if (leftFee !== rightFee) {
-    return leftFee - rightFee;
-  }
-
-  return left.name.localeCompare(right.name);
-}
-
-function assignBestEffortRankings(colleges: CollageCollege[]): CollageCollege[] {
-  return [...colleges]
-    .sort(compareCollegesForBestEffortRanking)
-    .map((college, index) => ({
-      ...college,
-      ranking: index + 1,
-      rankingSource: college.nirfRanking !== null ? ('nirf' as const) : ('estimated' as const),
-    }));
-}
-
 const collegeNameCandidates = ['college', 'collage', 'college_name', 'collage_name', 'name', 'institution', 'title'];
 const collegeStateCandidates = ['state', 'location', 'city', 'place'];
 const collegeFeeCandidates = ['fees', 'fees_per_year', 'fees per year', 'fee', 'tuition_fee', 'tuition'];
@@ -509,9 +299,6 @@ type CollageCollege = {
   id: string;
   imageSources: string[];
   name: string;
-  nirfRanking: number | null;
-  ranking: number;
-  rankingSource: 'estimated' | 'nirf';
   sourceTable: string;
   state: string;
   type: string;
@@ -630,7 +417,7 @@ const studentTestimonials: StudentTestimonial[] = [
     id: 4,
     name: 'Dip Roy',
     role: 'Student',
-    content: 'Admission Partner helped me a lot in my counselling process. I got the best college for my ranking with their support.',
+    content: 'Admission Partner helped me a lot in my counselling process. I got the best college for my profile with their support.',
     rating: 5,
     avatar: avatarImage('Dip Roy'),
   },
@@ -753,7 +540,6 @@ function mapCollegeRow(row: CollegeTableRow, sourceTable: string, index: number)
   const fees = valueToString(pickRowValue(row, collegeFeeCandidates));
   const year = valueToString(pickRowValue(row, collegeEstdCandidates));
   const type = valueToString(pickRowValue(row, collegeTypeCandidates));
-  const knownRanking = getKnownCollegeRanking(name);
   const explicitId = valueToString(row.id ?? row.ID ?? row.Id ?? row['S.no'] ?? row.s_no ?? row.sno);
 
   return {
@@ -761,9 +547,6 @@ function mapCollegeRow(row: CollegeTableRow, sourceTable: string, index: number)
     id: explicitId || `${sourceTable}-${index}-${normalizeKey(name)}`,
     imageSources,
     name,
-    nirfRanking: knownRanking ?? null,
-    ranking: 0,
-    rankingSource: knownRanking !== undefined ? 'nirf' : 'estimated',
     sourceTable,
     state,
     type,
@@ -1243,10 +1026,6 @@ function CollegeDetailsModal({ college, onClose }: { college: CollageCollege; on
                 Review the available quick facts for this college before moving ahead with counselling, shortlist planning, and admission guidance.
               </p>
 
-              <div className="inline-flex self-start rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-white/75">
-                Overall rank #{college.ranking}
-              </div>
-
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Fees</p>
@@ -1260,18 +1039,7 @@ function CollegeDetailsModal({ college, onClose }: { college: CollageCollege; on
                   <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Type</p>
                   <p className="mt-2 text-base font-semibold text-white">{college.type || 'Not available'}</p>
                 </div>
-                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Ranking</p>
-                  <p className="mt-2 text-base font-semibold text-white">#{college.ranking}</p>
-                </div>
               </div>
-
-              {college.nirfRanking !== null ? (
-                <div className="rounded-[22px] border border-emerald-400/20 bg-emerald-500/10 px-5 py-4">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-emerald-200/75">Official NIRF 2024</p>
-                  <p className="mt-2 text-base font-semibold text-emerald-100">#{college.nirfRanking}</p>
-                </div>
-              ) : null}
 
               <div className="rounded-[24px] border border-white/10 bg-white/[0.03] px-5 py-5">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Admission Partner Note</p>
@@ -1534,7 +1302,7 @@ function MarqueeRow({
   colleges,
   direction,
 }: {
-  colleges: typeof marqueeColleges;
+  colleges: CollegePreview[];
   direction: 'left' | 'right';
 }) {
   const sectionRef = useRef<HTMLDivElement | null>(null);
@@ -1666,6 +1434,7 @@ function TestimonialsSection() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
+  const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const activeTestimonial = testimonials[activeIndex] ?? studentTestimonials[0];
 
   const onFormChange = (key: keyof FeedbackFormState, value: string | number) => {
@@ -1794,63 +1563,75 @@ function TestimonialsSection() {
               </div>
             </div>
 
-            <form className="grid gap-4 rounded-[28px] border border-black/10 bg-white p-5 shadow-[0_12px_40px_rgba(12,12,12,0.06)] sm:p-6" onSubmit={onSubmitFeedback}>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0C0C0C]/45">Share feedback</p>
-                <h3 className="mt-2 text-xl font-semibold text-[#0C0C0C]">Add your review</h3>
-              </div>
-
-              <input
-                required
-                className="rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
-                onChange={(event) => onFormChange('name', event.target.value)}
-                placeholder="Your name"
-                type="text"
-                value={form.name}
-              />
-
-              <input
-                required
-                className="rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
-                onChange={(event) => onFormChange('role', event.target.value)}
-                placeholder="Role or course"
-                type="text"
-                value={form.role}
-              />
-
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((ratingValue) => (
-                  <button
-                    key={ratingValue}
-                    className="rounded-full p-1 text-[#0C0C0C]/20 transition-colors hover:text-[#F5B700]"
-                    onClick={() => onFormChange('rating', ratingValue)}
-                    type="button"
-                  >
-                    <Star className={`h-6 w-6 ${ratingValue <= form.rating ? 'fill-[#F5B700] text-[#F5B700]' : 'text-[#0C0C0C]/20'}`} />
-                  </button>
-                ))}
-                <span className="ml-2 text-sm text-[#0C0C0C]/55">{form.rating}/5</span>
-              </div>
-
-              <textarea
-                required
-                className="min-h-28 rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
-                onChange={(event) => onFormChange('content', event.target.value)}
-                placeholder="Write your feedback"
-                value={form.content}
-              />
-
-              {submitError ? <p className="text-sm text-rose-500">{submitError}</p> : null}
-              {submitSuccess ? <p className="text-sm text-emerald-600">{submitSuccess}</p> : null}
-
+            <div className="space-y-4">
               <button
-                className="rounded-full bg-[#0C0C0C] px-6 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#6F3DFF] disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={submitLoading}
-                type="submit"
+                className="rounded-full bg-[#0C0C0C] px-6 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-white transition-colors hover:bg-[#6F3DFF]"
+                onClick={() => setIsFeedbackFormOpen((current) => !current)}
+                type="button"
               >
-                {submitLoading ? 'Submitting...' : 'Submit Feedback'}
+                Give your feedback
               </button>
-            </form>
+
+              {isFeedbackFormOpen ? (
+                <form className="grid gap-4 rounded-[28px] border border-black/10 bg-white p-5 shadow-[0_12px_40px_rgba(12,12,12,0.06)] sm:p-6" onSubmit={onSubmitFeedback}>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0C0C0C]/45">Share feedback</p>
+                    <h3 className="mt-2 text-xl font-semibold text-[#0C0C0C]">Add your review</h3>
+                  </div>
+
+                  <input
+                    required
+                    className="rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
+                    onChange={(event) => onFormChange('name', event.target.value)}
+                    placeholder="Your name"
+                    type="text"
+                    value={form.name}
+                  />
+
+                  <input
+                    required
+                    className="rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
+                    onChange={(event) => onFormChange('role', event.target.value)}
+                    placeholder="Role or course"
+                    type="text"
+                    value={form.role}
+                  />
+
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((ratingValue) => (
+                      <button
+                        key={ratingValue}
+                        className="rounded-full p-1 text-[#0C0C0C]/20 transition-colors hover:text-[#F5B700]"
+                        onClick={() => onFormChange('rating', ratingValue)}
+                        type="button"
+                      >
+                        <Star className={`h-6 w-6 ${ratingValue <= form.rating ? 'fill-[#F5B700] text-[#F5B700]' : 'text-[#0C0C0C]/20'}`} />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm text-[#0C0C0C]/55">{form.rating}/5</span>
+                  </div>
+
+                  <textarea
+                    required
+                    className="min-h-28 rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
+                    onChange={(event) => onFormChange('content', event.target.value)}
+                    placeholder="Write your feedback"
+                    value={form.content}
+                  />
+
+                  {submitError ? <p className="text-sm text-rose-500">{submitError}</p> : null}
+                  {submitSuccess ? <p className="text-sm text-emerald-600">{submitSuccess}</p> : null}
+
+                  <button
+                    className="rounded-full bg-[#0C0C0C] px-6 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition-colors hover:bg-[#6F3DFF] disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={submitLoading}
+                    type="submit"
+                  >
+                    {submitLoading ? 'Submitting...' : 'Submit Feedback'}
+                  </button>
+                </form>
+              ) : null}
+            </div>
           </div>
         </FadeIn>
 
@@ -1905,7 +1686,7 @@ function TopCollegeCard({
   index,
   totalCards,
 }: {
-  college: (typeof marqueeColleges)[number];
+  college: CollegePreview;
   index: number;
   totalCards: number;
 }) {
@@ -1961,14 +1742,55 @@ function TopCollegeCard({
 }
 
 function ProjectsSection() {
-  const topMedicalColleges = [...marqueeColleges]
-    .filter((college) => new Set(college.images).size >= 3)
-    .sort((left, right) => {
-      const leftRank = getKnownCollegeRanking(left.name) ?? Number.MAX_SAFE_INTEGER;
-      const rightRank = getKnownCollegeRanking(right.name) ?? Number.MAX_SAFE_INTEGER;
-      return leftRank - rightRank;
-    })
-    .slice(0, 5);
+  const [aiimsColleges, setAiimsColleges] = useState<CollegePreview[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAiimsColleges = async () => {
+      try {
+        const rows = await fetchColleges();
+        if (cancelled) {
+          return;
+        }
+
+        const fallbackImages = marqueeColleges[0]?.images ?? [];
+        const nextColleges = rows
+          .map((row, index) => mapCollegeRow(row, 'colleges', index))
+          .filter((college): college is CollageCollege => {
+            if (!college) {
+              return false;
+            }
+
+            const normalizedName = normalizeKey(college.name);
+            return normalizedName.includes('aiims') || normalizedName.includes('allindiainstituteofmedicalsciences');
+          })
+          .map((college) => {
+            const images = [...new Set([...college.imageSources, ...fallbackImages])].filter(Boolean);
+            return {
+              images,
+              name: college.name,
+              state: college.state,
+            };
+          })
+          .sort((left, right) => left.name.localeCompare(right.name));
+
+        setAiimsColleges(nextColleges.length ? nextColleges : marqueeColleges.slice(0, 1));
+      } catch {
+        if (!cancelled) {
+          setAiimsColleges(marqueeColleges.slice(0, 1));
+        }
+      }
+    };
+
+    void loadAiimsColleges();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const topMedicalColleges = aiimsColleges.length ? aiimsColleges : marqueeColleges.slice(0, 1);
 
   return (
     <section
@@ -1977,7 +1799,7 @@ function ProjectsSection() {
     >
       <FadeIn delay={0} y={40}>
         <h2 className="hero-heading mb-14 text-center text-[clamp(3rem,12vw,160px)] font-black uppercase leading-none tracking-tight sm:mb-16 md:mb-20">
-          Top Medical Collages
+          AIIMS Medical Collages
         </h2>
       </FadeIn>
 
@@ -2129,6 +1951,7 @@ function AdminPage() {
   const [feedbacks, setFeedbacks] = useState<FeedbackAdminRow[]>([]);
   const [collegeSearch, setCollegeSearch] = useState('');
   const [collegeStateFilter, setCollegeStateFilter] = useState('all');
+  const [collegeTypeFilter, setCollegeTypeFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [savingCollegeId, setSavingCollegeId] = useState<string>('');
   const [savingFeedbackId, setSavingFeedbackId] = useState<string>('');
@@ -2288,6 +2111,7 @@ function AdminPage() {
       setFeedbacks([]);
       setCollegeSearch('');
       setCollegeStateFilter('all');
+      setCollegeTypeFilter('all');
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : 'Sign out failed.');
     } finally {
@@ -2313,16 +2137,22 @@ function AdminPage() {
     return [...new Set(states)].sort((a, b) => a.localeCompare(b));
   }, [colleges]);
 
+  const adminCollegeTypes = useMemo(() => {
+    const types = colleges.map((row) => (row.type ?? '').trim()).filter(Boolean);
+    return [...new Set(types)].sort((a, b) => a.localeCompare(b));
+  }, [colleges]);
+
   const filteredAdminColleges = useMemo(() => {
     const normalizedSearch = collegeSearch.trim().toLowerCase();
 
     return colleges.filter((row) => {
       const matchesName = !normalizedSearch || (row.name ?? '').toLowerCase().includes(normalizedSearch);
       const matchesState = collegeStateFilter === 'all' || (row.state ?? '').toLowerCase() === collegeStateFilter.toLowerCase();
+      const matchesType = collegeTypeFilter === 'all' || (row.type ?? '').toLowerCase() === collegeTypeFilter.toLowerCase();
 
-      return matchesName && matchesState;
+      return matchesName && matchesState && matchesType;
     });
-  }, [colleges, collegeSearch, collegeStateFilter]);
+  }, [colleges, collegeSearch, collegeStateFilter, collegeTypeFilter]);
 
   return (
     <main className="portfolio-shell min-h-screen bg-[#0A0A0A] px-5 py-10 text-white sm:px-8 md:px-10">
@@ -2429,7 +2259,7 @@ function AdminPage() {
               </div>
 
               {activeTab === 'colleges' ? (
-                <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                <div className="mb-5 grid gap-3 md:grid-cols-3">
                   <input
                     className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
                     onChange={(event) => setCollegeSearch(event.target.value)}
@@ -2446,6 +2276,18 @@ function AdminPage() {
                     {adminCollegeStates.map((state) => (
                       <option key={state} value={state}>
                         {state}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+                    onChange={(event) => setCollegeTypeFilter(event.target.value)}
+                    value={collegeTypeFilter}
+                  >
+                    <option value="all">All types</option>
+                    {adminCollegeTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
                       </option>
                     ))}
                   </select>
@@ -2601,6 +2443,7 @@ function CollagePage() {
     return '';
   });
   const [collegeStateFilter, setCollegeStateFilter] = useState('all');
+  const [collegeTypeFilter, setCollegeTypeFilter] = useState('all');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedCollege, setSelectedCollege] = useState<CollageCollege | null>(null);
@@ -2629,7 +2472,7 @@ function CollagePage() {
           return;
         }
 
-        setColleges(assignBestEffortRankings(mergedColleges));
+        setColleges(mergedColleges);
       } catch (loadError) {
         if (!cancelled) {
           setError(loadError instanceof Error ? loadError.message : 'Failed to load collage data.');
@@ -2654,6 +2497,11 @@ function CollagePage() {
     return [...new Set(states)].sort((a, b) => a.localeCompare(b));
   }, [colleges]);
 
+  const collageTypes = useMemo(() => {
+    const types = colleges.map((college) => college.type.trim()).filter(Boolean);
+    return [...new Set(types)].sort((a, b) => a.localeCompare(b));
+  }, [colleges]);
+
   const filteredColleges = useMemo(() => {
     const normalizedSearch = collegeSearch.trim().toLowerCase();
 
@@ -2661,11 +2509,12 @@ function CollagePage() {
       .filter((college) => {
         const matchesName = !normalizedSearch || college.name.toLowerCase().includes(normalizedSearch);
         const matchesState = collegeStateFilter === 'all' || college.state.toLowerCase() === collegeStateFilter.toLowerCase();
+        const matchesType = collegeTypeFilter === 'all' || college.type.toLowerCase() === collegeTypeFilter.toLowerCase();
 
-        return matchesName && matchesState;
+        return matchesName && matchesState && matchesType;
       })
-      .sort((left, right) => left.ranking - right.ranking || left.name.localeCompare(right.name));
-  }, [colleges, collegeSearch, collegeStateFilter]);
+      .sort((left, right) => left.name.localeCompare(right.name));
+  }, [colleges, collegeSearch, collegeStateFilter, collegeTypeFilter]);
 
   return (
     <main className="portfolio-shell min-h-screen bg-[#0C0C0C] px-5 py-6 text-[#D7E2EA] sm:px-8 md:px-10">
@@ -2682,7 +2531,7 @@ function CollagePage() {
         <section className="mb-10 rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),rgba(255,255,255,0.04)_36%,rgba(255,255,255,0.02)_100%)] px-6 py-10 sm:px-8 md:px-10">
           <p className="text-sm font-medium uppercase tracking-[0.3em] text-white/55">Collage</p>
           <h1 className="mt-4 text-[clamp(2.6rem,8vw,6rem)] font-black uppercase leading-none tracking-tight text-white">All Medical Colleges</h1>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
             <input
               className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
               onChange={(event) => setCollegeSearch(event.target.value)}
@@ -2699,6 +2548,18 @@ function CollagePage() {
               {collageStates.map((state) => (
                 <option key={state} value={state}>
                   {state}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+              onChange={(event) => setCollegeTypeFilter(event.target.value)}
+              value={collegeTypeFilter}
+            >
+              <option value="all">All types</option>
+              {collageTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
                 </option>
               ))}
             </select>
@@ -2730,7 +2591,7 @@ function CollagePage() {
         {!loading && !error ? (
           <div className="mb-6 flex items-center justify-between gap-4">
             <p className="text-sm uppercase tracking-[0.24em] text-white/55">{filteredColleges.length} colleges shown</p>
-            <p className="text-xs uppercase tracking-[0.22em] text-white/40">Official NIRF 2024 first, best-effort ranking for remaining colleges</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-white/40">Filter by college name, state, and type</p>
           </div>
         ) : null}
 
@@ -2751,19 +2612,10 @@ function CollagePage() {
 
                 <div className="space-y-4 p-6">
                   <div>
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-xs uppercase tracking-[0.24em] text-white/45">{college.sourceTable}</p>
-                      <span className={`rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.2em] ${college.rankingSource === 'nirf' ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200' : 'border-white/10 bg-white/[0.03] text-white/70'}`}>
-                        Rank #{college.ranking}
-                      </span>
-                    </div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">{college.sourceTable}</p>
                     <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">{college.name}</h2>
                     <p className="mt-2 text-sm uppercase tracking-[0.22em] text-white/60">{college.state}</p>
                   </div>
-
-                  <p className={`text-[11px] uppercase tracking-[0.22em] ${college.rankingSource === 'nirf' ? 'text-emerald-200/80' : 'text-white/45'}`}>
-                    {college.nirfRanking !== null ? `Official NIRF 2024 #${college.nirfRanking}` : 'Best-effort overall rank'}
-                  </p>
 
                   <div className="grid grid-cols-2 gap-3 text-sm text-white/75">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
