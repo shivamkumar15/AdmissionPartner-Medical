@@ -12,9 +12,10 @@ const FADE_OUT_THRESHOLD_SECONDS = 0.55;
 const MOTION_EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const ADMIN_EMAIL = 'kullucobra@gmail.com';
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
 const FEEDBACK_TABLE = 'feedbacks';
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+const isAdminConfigured = Boolean(ADMIN_EMAIL);
 
 function getSupabaseConfig() {
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
@@ -29,6 +30,14 @@ function getSupabaseConfig() {
 
 const supabase = isSupabaseConfigured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 const TESTIMONIAL_ROTATE_INTERVAL_MS = 3200;
+const PUBLIC_DATA_CACHE_TTL_MS = 10 * 60 * 1000;
+const ADMIN_DATA_CACHE_TTL_MS = 45 * 1000;
+const DATA_CACHE_PREFIX = 'admission-partner-cache:';
+const COLLEGES_CACHE_KEY = 'colleges';
+const ADMIN_COLLEGES_CACHE_KEY = 'admin-colleges';
+const APPOINTMENTS_CACHE_KEY = 'admin-appointments';
+const PUBLISHED_FEEDBACK_CACHE_KEY = 'published-feedbacks';
+const ADMIN_FEEDBACK_CACHE_KEY = 'admin-feedbacks';
 const proxyImage = (url: string) =>
   `https://images.higgs.ai/?default=1&output=webp&url=${encodeURIComponent(url)}&w=1200&q=85`;
 const wikimediaFile = (fileName: string) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`;
@@ -142,18 +151,63 @@ type CollegePreview = {
   state: string;
 };
 
-const getAiimsPreviewImages = (offset: number) => {
-  const images = marqueeColleges[0]?.images ?? [];
-  return [...images.slice(offset), ...images.slice(0, offset)];
-};
-
 const aiimsPreviewColleges: CollegePreview[] = [
-  { name: 'AIIMS New Delhi', state: 'New Delhi', images: getAiimsPreviewImages(0) },
-  { name: 'AIIMS Bhopal', state: 'Madhya Pradesh', images: getAiimsPreviewImages(1) },
-  { name: 'AIIMS Bhubaneswar', state: 'Odisha', images: getAiimsPreviewImages(2) },
-  { name: 'AIIMS Jodhpur', state: 'Rajasthan', images: getAiimsPreviewImages(3) },
-  { name: 'AIIMS Patna', state: 'Bihar', images: getAiimsPreviewImages(0) },
-  { name: 'AIIMS Raipur', state: 'Chhattisgarh', images: getAiimsPreviewImages(1) },
+  {
+    name: 'AIIMS New Delhi',
+    state: 'New Delhi',
+    images: [
+      'https://www.aiims.edu/images/layerslider/genius/rslide1.jpg',
+      'https://www.aiims.edu/images/layerslider/genius/rslide2.jpg',
+      'https://www.aiims.edu/images/layerslider/genius/rslide3.jpg',
+      'https://www.aiims.edu/images/com_fwgallery/files/806/mid_aiims-entrance.JPG',
+    ],
+  },
+  {
+    name: 'AIIMS Bhopal',
+    state: 'Madhya Pradesh',
+    images: [
+      wikimediaFile('AIIMS Bhopal Front.jpg'),
+      wikimediaFile('AIIMS Bhopal Building Front (1).jpg'),
+      wikimediaFile('AIIMS Bhopal Building Front (6).jpg'),
+    ],
+  },
+  {
+    name: 'AIIMS Bhubaneswar',
+    state: 'Odisha',
+    images: [
+      wikimediaFile('AIIMS Bhubaneswar, Odisha.jpg'),
+      wikimediaFile('AIIMS Bhubaneswar 01.jpg'),
+      wikimediaFile('AIIMS Bhubaneswar 02.jpg'),
+      wikimediaFile('AIIMS Bhubaneswar 04.jpg'),
+    ],
+  },
+  {
+    name: 'AIIMS Jodhpur',
+    state: 'Rajasthan',
+    images: [
+      wikimediaFile('AIIMS Jodhpur.png'),
+      wikimediaFile('J.P._Nadda_visiting_after_inaugurating_the_four_new_facilities_including_Physical_Medicine_and_Rehabilitation_Block,_Blood_Bank_and_Central_Lab_Block,_at_AIIMS,_in_Jodhpur_on_June_06,_2015.jpg'),
+      wikimediaFile('J.P._Nadda_visiting_after_inaugurating_the_four_new_facilities_including_Physical_Medicine_and_Rehabilitation_Block,_Blood_Bank_and_Central_Lab_Block,_at_AIIMS,_in_Jodhpur_on_June_06,_2015_(1).jpg'),
+    ],
+  },
+  {
+    name: 'AIIMS Patna',
+    state: 'Bihar',
+    images: [
+      wikimediaFile('Aiimspatnamain.png'),
+      wikimediaFile('Aiimspatnaopd.png'),
+      wikimediaFile('Aiimspatnatrauma.png'),
+    ],
+  },
+  {
+    name: 'AIIMS Raipur',
+    state: 'Chhattisgarh',
+    images: [
+      wikimediaFile('Aiims Raipur front view.jpg'),
+      wikimediaFile('AIIMS Raipur Medical College.jpg'),
+      wikimediaFile('Side view of aiims raipur college.jpg'),
+    ],
+  },
 ];
 
 const aboutDecorations = [
@@ -292,7 +346,7 @@ const additionalCollegeImages = [
   },
 ];
 
-const knownCollegeImages = new Map([...marqueeColleges, ...additionalCollegeImages].map((college) => [normalizeKey(college.name), college.images]));
+const knownCollegeImages = new Map([...marqueeColleges, ...additionalCollegeImages, ...aiimsPreviewColleges].map((college) => [normalizeKey(college.name), college.images]));
 
 const blockedCollegeImageUrls = new Set([
   'https://en.wikipedia.org/wiki/Special:FilePath/Sir_sundar_lal_hospital.jpg',
@@ -300,8 +354,24 @@ const blockedCollegeImageUrls = new Set([
   'https://pgimer.edu.in/PGIMER_PORTAL/PGIMERPORTAL/Images/newslider/5.jpg',
 ]);
 
+const defaultCollegeImagePool = [
+  'https://www.aiims.edu/images/layerslider/genius/rslide1.jpg',
+  wikimediaFile('CMCH_Vellore.JPG'),
+  wikimediaFile('JIPMER.jpg'),
+  wikimediaFile('Maulana_Azad_Medical_College.jpg'),
+  wikimediaFile('Mmc-new.jpg'),
+  wikimediaFile('AFMC Main Building.jpg'),
+  wikimediaFile('Basic_Science_Building_of_AMCH.jpg'),
+  wikimediaFile('Patna_medical_college_&_hospital.jpg'),
+  wikimediaFile('Gauhati_Medical_College_Auditorium.jpg'),
+  wikimediaFile('Nalanda_Medical_College_and_Hospital.jpg'),
+  wikimediaFile('Sri_Krishna_Medical_College_and_Hospital_Main_Building.jpg'),
+  wikimediaFile('AIIMS Bhubaneswar, Odisha.jpg'),
+];
+
 const collegeNameCandidates = ['college', 'collage', 'college_name', 'collage_name', 'name', 'institution', 'title'];
-const collegeStateCandidates = ['state', 'location', 'city', 'place'];
+const collegeStateCandidates = ['state', 'location', 'place'];
+const collegeCityCandidates = ['city', 'town', 'district'];
 const collegeFeeCandidates = ['fees', 'fees_per_year', 'fees per year', 'fee', 'tuition_fee', 'tuition'];
 const collegeEstdCandidates = ['estd', 'established', 'establishment_year', 'year'];
 const collegeTypeCandidates = ['type', 'category', 'college_type', 'course_type'];
@@ -323,6 +393,7 @@ type CollageCollege = {
   name: string;
   sourceTable: string;
   state: string;
+  city: string;
   type: string;
   year: string;
 };
@@ -358,6 +429,7 @@ type AppointmentRow = {
   email?: string;
   full_name?: string;
   id?: number | string;
+  is_read?: boolean | string;
   message?: string;
   phone?: string;
   preferred_date?: string;
@@ -402,6 +474,13 @@ type StudentTestimonial = {
   rating: number;
   avatar: string;
 };
+
+type DataCacheEntry<T> = {
+  data: T;
+  expiresAt: number;
+};
+
+const memoryDataCache = new Map<string, DataCacheEntry<unknown>>();
 
 const mainNavItems: NavMenuItem[] = [
   { title: 'Home', href: '/', icon: Home, gradientFrom: '#a955ff', gradientTo: '#ea51ff' },
@@ -492,6 +571,91 @@ function valueToNumber(value: unknown, fallback: number) {
   return Number.isFinite(numericValue) ? numericValue : fallback;
 }
 
+function getPersistentCacheKey(key: string) {
+  return `${DATA_CACHE_PREFIX}${key}`;
+}
+
+function readCachedData<T>(key: string, persist: boolean) {
+  const memoryEntry = memoryDataCache.get(key) as DataCacheEntry<T> | undefined;
+  const now = Date.now();
+
+  if (memoryEntry) {
+    if (memoryEntry.expiresAt > now) {
+      return memoryEntry.data;
+    }
+
+    memoryDataCache.delete(key);
+  }
+
+  if (!persist || typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(getPersistentCacheKey(key));
+    if (!storedValue) {
+      return null;
+    }
+
+    const storedEntry = JSON.parse(storedValue) as DataCacheEntry<T>;
+    if (!storedEntry || storedEntry.expiresAt <= now) {
+      window.localStorage.removeItem(getPersistentCacheKey(key));
+      return null;
+    }
+
+    memoryDataCache.set(key, storedEntry);
+    return storedEntry.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedData<T>(key: string, data: T, ttlMs: number, persist: boolean) {
+  const entry: DataCacheEntry<T> = {
+    data,
+    expiresAt: Date.now() + ttlMs,
+  };
+
+  memoryDataCache.set(key, entry);
+
+  if (!persist || typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(getPersistentCacheKey(key), JSON.stringify(entry));
+  } catch {
+    // Storage can be unavailable or full; memory cache still improves this session.
+  }
+}
+
+function clearCachedData(keys: string[]) {
+  keys.forEach((key) => {
+    memoryDataCache.delete(key);
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      window.localStorage.removeItem(getPersistentCacheKey(key));
+    } catch {
+      // Ignore storage failures; cache invalidation should not block app updates.
+    }
+  });
+}
+
+async function loadCachedData<T>(key: string, ttlMs: number, persist: boolean, loadFreshData: () => Promise<T>) {
+  const cachedData = readCachedData<T>(key, persist);
+  if (cachedData !== null) {
+    return cachedData;
+  }
+
+  const freshData = await loadFreshData();
+  writeCachedData(key, freshData, ttlMs, persist);
+  return freshData;
+}
+
 
 function pickRowValue(row: Record<string, unknown>, candidates: string[], fuzzy = true) {
   const entries = Object.entries(row);
@@ -543,10 +707,25 @@ function sanitizeCollegeImageUrls(images: string[]) {
   return [...new Set(images.map((image) => image.trim()).filter((image) => image.startsWith('http') && !blockedCollegeImageUrls.has(image)))];
 }
 
+function getStableImageOffset(value: string) {
+  return Array.from(value).reduce((total, character) => total + character.charCodeAt(0), 0);
+}
+
+function getDefaultCollegeImages(name: string) {
+  const images = sanitizeCollegeImageUrls(defaultCollegeImagePool);
+  if (!images.length) {
+    return [];
+  }
+
+  const offset = getStableImageOffset(name) % images.length;
+  return [...images.slice(offset), ...images.slice(0, offset)].slice(0, 4);
+}
+
 function fallbackImagesForCollege(name: string) {
   const normalizedName = normalizeKey(name);
+  const verifiedImages = sanitizeCollegeImageUrls(knownCollegeImages.get(normalizedName) ?? []);
 
-  return sanitizeCollegeImageUrls(knownCollegeImages.get(normalizedName) ?? []);
+  return verifiedImages.length ? verifiedImages : getDefaultCollegeImages(name);
 }
 
 function mapCollegeRow(row: CollegeTableRow, sourceTable: string, index: number): CollageCollege | null {
@@ -559,6 +738,7 @@ function mapCollegeRow(row: CollegeTableRow, sourceTable: string, index: number)
   const directImages = sanitizeCollegeImageUrls(collegeImageCandidates.flatMap((candidate) => imageCandidatesFromValue(pickRowValue(row, [candidate]))));
   const imageSources = [...new Set([...directImages, ...fallbackImagesForCollege(name)])];
   const state = valueToString(pickRowValue(row, collegeStateCandidates, false)) || 'India';
+  const city = valueToString(pickRowValue(row, collegeCityCandidates, false));
   const fees = valueToString(pickRowValue(row, collegeFeeCandidates));
   const year = valueToString(pickRowValue(row, collegeEstdCandidates));
   const type = valueToString(pickRowValue(row, collegeTypeCandidates));
@@ -571,27 +751,30 @@ function mapCollegeRow(row: CollegeTableRow, sourceTable: string, index: number)
     name,
     sourceTable,
     state,
+    city,
     type,
     year,
   };
 }
 
 async function fetchColleges() {
-  const { key, url } = getSupabaseConfig();
-  const response = await fetch(`${url}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
+  return loadCachedData(COLLEGES_CACHE_KEY, PUBLIC_DATA_CACHE_TTL_MS, true, async () => {
+    const { key, url } = getSupabaseConfig();
+    const response = await fetch(`${url}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load colleges: ${response.status}`);
+    }
+
+    const json = (await response.json()) as unknown;
+
+    return Array.isArray(json) ? (json as CollegeTableRow[]) : [];
   });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load colleges: ${response.status}`);
-  }
-
-  const json = (await response.json()) as unknown;
-
-  return Array.isArray(json) ? (json as CollegeTableRow[]) : [];
 }
 
 function mapFeedbackRow(row: FeedbackRow, index: number): StudentTestimonial | null {
@@ -623,45 +806,50 @@ function mapFeedbackRow(row: FeedbackRow, index: number): StudentTestimonial | n
 }
 
 async function fetchPublishedFeedbacks() {
-  const { key, url } = getSupabaseConfig();
-  const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?select=*&is_published=eq.true&order=created_at.desc`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
+  return loadCachedData(PUBLISHED_FEEDBACK_CACHE_KEY, PUBLIC_DATA_CACHE_TTL_MS, true, async () => {
+    const { key, url } = getSupabaseConfig();
+    const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?select=*&is_published=eq.true&order=created_at.desc`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+      },
+    });
+
+    if (response.status === 404 || response.status === 400) {
+      return [];
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to load feedbacks: ${response.status}`);
+    }
+
+    const json = (await response.json()) as unknown;
+    return Array.isArray(json) ? (json as FeedbackRow[]) : [];
   });
-
-  if (response.status === 404 || response.status === 400) {
-    return [];
-  }
-
-  if (!response.ok) {
-    throw new Error(`Failed to load feedbacks: ${response.status}`);
-  }
-
-  const json = (await response.json()) as unknown;
-  return Array.isArray(json) ? (json as FeedbackRow[]) : [];
 }
 
 async function fetchAdminFeedbacks() {
-  const { key, url } = getSupabaseConfig();
-  const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?select=*&order=created_at.desc`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-    },
+  return loadCachedData(ADMIN_FEEDBACK_CACHE_KEY, ADMIN_DATA_CACHE_TTL_MS, false, async () => {
+    const { key, url } = getSupabaseConfig();
+    const accessToken = (await supabase?.auth.getSession())?.data.session?.access_token;
+    const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?select=*&order=created_at.desc`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${accessToken ?? key}`,
+      },
+    });
+
+    if (response.status === 404 || response.status === 400) {
+      return [];
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to load admin feedbacks: ${response.status}`);
+    }
+
+    const json = (await response.json()) as unknown;
+    return Array.isArray(json) ? (json as FeedbackAdminRow[]) : [];
   });
-
-  if (response.status === 404 || response.status === 400) {
-    return [];
-  }
-
-  if (!response.ok) {
-    throw new Error(`Failed to load admin feedbacks: ${response.status}`);
-  }
-
-  const json = (await response.json()) as unknown;
-  return Array.isArray(json) ? (json as FeedbackAdminRow[]) : [];
 }
 
 async function createFeedbackSubmission(form: FeedbackFormState) {
@@ -670,7 +858,7 @@ async function createFeedbackSubmission(form: FeedbackFormState) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Prefer: 'return=representation',
+      Prefer: 'return=minimal',
       apikey: key,
       Authorization: `Bearer ${key}`,
     },
@@ -680,26 +868,34 @@ async function createFeedbackSubmission(form: FeedbackFormState) {
       content: form.content,
       rating: form.rating,
       avatar_url: avatarImage(form.name),
-      is_published: false,
     }),
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Feedback table was not found in Supabase. Create the public.feedbacks table in the project connected to this website.');
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Feedback table is blocking public submissions. Add an insert policy for anon users in Supabase.');
+    }
+
     throw new Error(`Failed to submit feedback: ${response.status}`);
   }
 
-  return response.json();
+  clearCachedData([PUBLISHED_FEEDBACK_CACHE_KEY, ADMIN_FEEDBACK_CACHE_KEY]);
 }
 
 async function updateFeedbackApproval(id: string, isPublished: boolean) {
   const { key, url } = getSupabaseConfig();
+  const accessToken = (await supabase?.auth.getSession())?.data.session?.access_token;
   const response = await fetch(`${url}/rest/v1/${FEEDBACK_TABLE}?id=eq.${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
       apikey: key,
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${accessToken ?? key}`,
     },
     body: JSON.stringify({ is_published: isPublished }),
   });
@@ -710,9 +906,11 @@ async function updateFeedbackApproval(id: string, isPublished: boolean) {
 
   const json = (await response.json()) as unknown;
   if (Array.isArray(json) && json[0]) {
+    clearCachedData([PUBLISHED_FEEDBACK_CACHE_KEY, ADMIN_FEEDBACK_CACHE_KEY]);
     return json[0] as FeedbackAdminRow;
   }
 
+  clearCachedData([PUBLISHED_FEEDBACK_CACHE_KEY, ADMIN_FEEDBACK_CACHE_KEY]);
   return null;
 }
 
@@ -722,7 +920,7 @@ async function createAppointment(form: AppointmentFormState) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Prefer: 'return=representation',
+      Prefer: 'return=minimal',
       apikey: key,
       Authorization: `Bearer ${key}`,
     },
@@ -737,61 +935,116 @@ async function createAppointment(form: AppointmentFormState) {
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Appointments table was not found in Supabase. Create the public.appointments table in the project connected to this website.');
+    }
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Appointments table is blocking public submissions. Add an insert policy for anon users in Supabase.');
+    }
+
     throw new Error(`Failed to create appointment: ${response.status}`);
   }
 
-  return response.json();
+  clearCachedData([APPOINTMENTS_CACHE_KEY]);
 }
 
 async function fetchAppointments() {
-  const { key, url } = getSupabaseConfig();
-  const response = await fetch(
-    `${url}/rest/v1/appointments?select=id,full_name,email,phone,preferred_date,message,created_at,admin_email&order=created_at.desc`,
-    {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
+  return loadCachedData(APPOINTMENTS_CACHE_KEY, ADMIN_DATA_CACHE_TTL_MS, false, async () => {
+    const { key, url } = getSupabaseConfig();
+    const accessToken = (await supabase?.auth.getSession())?.data.session?.access_token;
+    const headers = {
+      apikey: key,
+      Authorization: `Bearer ${accessToken ?? key}`,
+    };
+    const baseSelect = 'id,full_name,email,phone,preferred_date,message,created_at,admin_email';
+    let response = await fetch(
+      `${url}/rest/v1/appointments?select=${baseSelect},is_read&order=created_at.desc`,
+      {
+        headers,
       },
+    );
+
+    if (response.status === 400) {
+      response = await fetch(`${url}/rest/v1/appointments?select=${baseSelect}&order=created_at.desc`, {
+        headers,
+      });
+    }
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Appointments table was not found in Supabase. Create the public.appointments table in the project connected to this website.');
+      }
+
+      throw new Error(`Failed to load appointments: ${response.status}`);
+    }
+
+    const json = (await response.json()) as unknown;
+    return Array.isArray(json) ? (json as AppointmentRow[]) : [];
+  });
+}
+
+async function updateAppointmentReadStatus(id: string, isRead: boolean) {
+  const { key, url } = getSupabaseConfig();
+  const accessToken = (await supabase?.auth.getSession())?.data.session?.access_token;
+  const response = await fetch(`${url}/rest/v1/appointments?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation',
+      apikey: key,
+      Authorization: `Bearer ${accessToken ?? key}`,
     },
-  );
+    body: JSON.stringify({ is_read: isRead }),
+  });
 
   if (!response.ok) {
-    throw new Error(`Failed to load appointments: ${response.status}`);
+    throw new Error(`Failed to update appointment ${id}: ${response.status}`);
   }
 
   const json = (await response.json()) as unknown;
-  return Array.isArray(json) ? (json as AppointmentRow[]) : [];
+  if (Array.isArray(json) && json[0]) {
+    clearCachedData([APPOINTMENTS_CACHE_KEY]);
+    return json[0] as AppointmentRow;
+  }
+
+  clearCachedData([APPOINTMENTS_CACHE_KEY]);
+  return null;
 }
 
 async function fetchAdminColleges() {
-  const { key, url } = getSupabaseConfig();
-  const response = await fetch(
-    `${url}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`,
-    {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
+  return loadCachedData(ADMIN_COLLEGES_CACHE_KEY, ADMIN_DATA_CACHE_TTL_MS, false, async () => {
+    const { key, url } = getSupabaseConfig();
+    const accessToken = (await supabase?.auth.getSession())?.data.session?.access_token;
+    const response = await fetch(
+      `${url}/rest/v1/colleges?select=id,name,state,city,fees,estd,type,image_url,source_table&order=id.asc&limit=1000`,
+      {
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${accessToken ?? key}`,
+        },
       },
-    },
-  );
+    );
 
-  if (!response.ok) {
-    throw new Error(`Failed to load colleges for admin: ${response.status}`);
-  }
+    if (!response.ok) {
+      throw new Error(`Failed to load colleges for admin: ${response.status}`);
+    }
 
-  const json = (await response.json()) as unknown;
-  return Array.isArray(json) ? (json as CollegeAdminRow[]) : [];
+    const json = (await response.json()) as unknown;
+    return Array.isArray(json) ? (json as CollegeAdminRow[]) : [];
+  });
 }
 
 async function updateCollegeById(college: CollegeAdminRow) {
   const { key, url } = getSupabaseConfig();
+  const accessToken = (await supabase?.auth.getSession())?.data.session?.access_token;
   const response = await fetch(`${url}/rest/v1/colleges?id=eq.${encodeURIComponent(String(college.id))}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
       apikey: key,
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${accessToken ?? key}`,
     },
     body: JSON.stringify({
       name: college.name ?? '',
@@ -810,21 +1063,22 @@ async function updateCollegeById(college: CollegeAdminRow) {
 
   const json = (await response.json()) as unknown;
   if (Array.isArray(json) && json[0]) {
+    clearCachedData([COLLEGES_CACHE_KEY, ADMIN_COLLEGES_CACHE_KEY]);
     return json[0] as CollegeAdminRow;
   }
 
+  clearCachedData([COLLEGES_CACHE_KEY, ADMIN_COLLEGES_CACHE_KEY]);
   return college;
 }
 
-async function signInAdminWithGoogle() {
+async function signInAdminWithPassword(email: string, password: string) {
   if (!supabase) {
     throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
   }
 
-  const redirectTo = `${window.location.origin}/admin`;
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo },
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
 
   if (error) {
@@ -832,12 +1086,22 @@ async function signInAdminWithGoogle() {
   }
 }
 
+function getAdminAuthErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : '';
+
+  if (message.toLowerCase().includes('invalid login credentials')) {
+    return 'Invalid admin email or password.';
+  }
+
+  return message || 'Admin sign-in failed.';
+}
+
 async function signOutAdmin() {
   if (!supabase) {
     throw new Error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
   }
 
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
 
   if (error) {
     throw error;
@@ -962,6 +1226,25 @@ function AnimatedText({ text }: { text: string }) {
   );
 }
 
+function MedicalLoader({ label = 'Loading' }: { label?: string }) {
+  return (
+    <div className="flex min-h-[260px] flex-col items-center justify-center gap-5 text-center">
+      <div aria-hidden="true" className="medical-loader">
+        <div className="medical-loader__bar-one">
+          <div className="medical-loader__bar-two">
+            <div className="medical-loader__bubble medical-loader__bubble--one" />
+            <div className="medical-loader__bubble medical-loader__bubble--two" />
+            <div className="medical-loader__bubble medical-loader__bubble--three" />
+            <div className="medical-loader__bubble medical-loader__bubble--four" />
+            <div className="medical-loader__bubble medical-loader__bubble--five" />
+          </div>
+        </div>
+      </div>
+      <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/55">{label}</p>
+    </div>
+  );
+}
+
 function CollegeImage({ images, name }: { images: string[]; name: string }) {
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -1066,6 +1349,10 @@ function CollegeDetailsModal({ college, onClose }: { college: CollageCollege; on
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">City</p>
+                  <p className="mt-2 text-base font-semibold text-white">{college.city || 'Not available'}</p>
+                </div>
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-4">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-white/40">Fees</p>
                   <p className="mt-2 text-base font-semibold text-white">{college.fees || 'Not available'}</p>
@@ -1540,6 +1827,7 @@ function TestimonialsSection() {
     const channel = supabase
       ?.channel('homepage-feedbacks')
       .on('postgres_changes', { event: '*', schema: 'public', table: FEEDBACK_TABLE }, () => {
+        clearCachedData([PUBLISHED_FEEDBACK_CACHE_KEY]);
         void loadFeedbacks();
       })
       .subscribe();
@@ -1736,8 +2024,10 @@ function TopCollegeCard({
     target: containerRef,
     offset: ['start end', 'end start'],
   });
-  const targetScale = Math.max(0.68, 1 - (totalCards - 1 - index) * 0.06);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, targetScale]);
+  // Make cards underneath get significantly smaller when stacked
+  const targetScale = Math.max(0.55, 1 - (totalCards - 1 - index) * 0.09);
+  // Transition scale from 1.0 to targetScale only after the card becomes sticky (around scroll progress 0.48)
+  const scale = useTransform(scrollYProgress, [0, 0.48, 1], [1, 1, targetScale]);
   const uniqueImages = [...new Set(college.images)].filter(Boolean);
   const imageA = [uniqueImages[0]];
   const imageB = [uniqueImages[1], uniqueImages[2], uniqueImages[0]].filter(Boolean);
@@ -1746,22 +2036,22 @@ function TopCollegeCard({
   return (
     <div ref={containerRef} className="relative h-[85vh]">
       <motion.article
-        className="sticky top-24 rounded-[40px] border-2 border-[#D7E2EA] bg-[#0C0C0C] p-4 sm:rounded-[50px] sm:p-6 md:top-32 md:rounded-[60px] md:p-8"
+        className="sticky top-16 rounded-[40px] border-2 border-[#D7E2EA] bg-[#0C0C0C] p-4 sm:rounded-[50px] sm:p-5 md:top-20 md:rounded-[60px] md:p-7"
         style={{ scale, marginTop: `${index * 28}px` }}
       >
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="pt-2 sm:pt-4">
-              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#D7E2EA]/70 sm:text-sm">Medical College</p>
-              <h3 className="mt-3 text-[clamp(1.5rem,3vw,3.4rem)] font-medium uppercase leading-none text-[#D7E2EA]">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="pt-1">
+              <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#D7E2EA]/70">Medical College</p>
+              <h3 className="mt-2 text-[clamp(1.3rem,2.6vw,3rem)] font-medium uppercase leading-none text-[#D7E2EA]">
                 {college.name}
               </h3>
-              <p className="mt-3 text-sm uppercase tracking-[0.22em] text-[#D7E2EA]/65">{college.state}</p>
+              <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[#D7E2EA]/65">{college.state}</p>
             </div>
 
-            <div className="self-start lg:pt-4">
+            <div className="self-start lg:pt-2">
               <a
-                className="inline-flex rounded-full border-2 border-[#D7E2EA] px-8 py-3 text-sm font-medium uppercase tracking-[0.28em] text-[#D7E2EA] transition-colors hover:bg-[#D7E2EA]/10 sm:px-10 sm:py-3.5 sm:text-base"
+                className="inline-flex rounded-full border-2 border-[#D7E2EA] px-8 py-2.5 text-xs font-medium uppercase tracking-[0.28em] text-[#D7E2EA] transition-colors hover:bg-[#D7E2EA]/10 sm:px-10 sm:py-3 sm:text-sm"
                 href={`/collage?search=${encodeURIComponent(college.name)}`}
               >
                 View Details
@@ -1769,12 +2059,12 @@ function TopCollegeCard({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-[0.4fr_0.6fr] md:gap-6">
-            <div className="flex flex-col gap-4 md:gap-6">
-              <CollegePreviewImage alt={`${college.name} preview one`} className="project-image h-[clamp(130px,16vw,230px)]" images={imageA} />
-              <CollegePreviewImage alt={`${college.name} preview two`} className="project-image h-[clamp(160px,22vw,340px)]" images={imageB} />
+          <div className="grid gap-3 md:grid-cols-[0.4fr_0.6fr] md:gap-4">
+            <div className="flex flex-col gap-3 md:gap-4">
+              <CollegePreviewImage alt={`${college.name} preview one`} className="project-image h-[clamp(110px,13vw,190px)]" images={imageA} />
+              <CollegePreviewImage alt={`${college.name} preview two`} className="project-image h-[clamp(130px,17vw,270px)]" images={imageB} />
             </div>
-            <CollegePreviewImage alt={`${college.name} hero preview`} className="project-image h-full min-h-[360px]" images={imageC} />
+            <CollegePreviewImage alt={`${college.name} hero preview`} className="project-image h-full min-h-[290px]" images={imageC} />
           </div>
         </div>
       </motion.article>
@@ -1783,60 +2073,7 @@ function TopCollegeCard({
 }
 
 function ProjectsSection() {
-  const [aiimsColleges, setAiimsColleges] = useState<CollegePreview[]>(aiimsPreviewColleges);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadAiimsColleges = async () => {
-      try {
-        const rows = await fetchColleges();
-        if (cancelled) {
-          return;
-        }
-
-        const fallbackImages = aiimsPreviewColleges[0]?.images ?? [];
-        const supabaseAiimsColleges = rows
-          .map((row, index) => mapCollegeRow(row, 'colleges', index))
-          .filter((college): college is CollageCollege => {
-            if (!college) {
-              return false;
-            }
-
-            const normalizedName = normalizeKey(college.name);
-            return normalizedName.includes('aiims') || normalizedName.includes('allindiainstituteofmedicalsciences');
-          })
-          .map((college) => {
-            const images = [...new Set([...college.imageSources, ...fallbackImages])].filter(Boolean);
-            return {
-              images,
-              name: college.name,
-              state: college.state,
-            };
-          })
-          .sort((left, right) => left.name.localeCompare(right.name));
-
-        const mergedColleges = new Map(aiimsPreviewColleges.map((college) => [normalizeKey(college.name), college]));
-        for (const college of supabaseAiimsColleges) {
-          mergedColleges.set(normalizeKey(college.name), college);
-        }
-
-        setAiimsColleges([...mergedColleges.values()].sort((left, right) => left.name.localeCompare(right.name)));
-      } catch {
-        if (!cancelled) {
-          setAiimsColleges(aiimsPreviewColleges);
-        }
-      }
-    };
-
-    void loadAiimsColleges();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const topMedicalColleges = aiimsColleges.length ? aiimsColleges : aiimsPreviewColleges;
+  const topMedicalColleges = aiimsPreviewColleges.slice(0, 6);
 
   return (
     <section
@@ -1845,7 +2082,7 @@ function ProjectsSection() {
     >
       <FadeIn delay={0} y={40}>
         <h2 className="hero-heading mb-14 text-center text-[clamp(3rem,12vw,160px)] font-black uppercase leading-none tracking-tight sm:mb-16 md:mb-20">
-          AIIMS Medical Collages
+          Top Medical Collages
         </h2>
       </FadeIn>
 
@@ -1859,6 +2096,7 @@ function ProjectsSection() {
 }
 
 function BookAppointmentSection() {
+  const todayDate = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState<AppointmentFormState>({
     fullName: '',
     email: '',
@@ -1880,6 +2118,12 @@ function BookAppointmentSection() {
     setError('');
     setSuccess('');
 
+    if (form.preferredDate < todayDate) {
+      setError('Please select today or a future date for your appointment.');
+      setLoading(false);
+      return;
+    }
+
     try {
       await createAppointment(form);
       setSuccess('Appointment request sent successfully. We will contact you soon.');
@@ -1898,7 +2142,7 @@ function BookAppointmentSection() {
           <p className="text-xs uppercase tracking-[0.3em] text-white/50">Consultation Desk</p>
           <h2 className="mt-4 text-[clamp(2rem,6vw,4rem)] font-black uppercase leading-none tracking-tight">Book Appointment</h2>
           <p className="mt-5 text-sm leading-relaxed text-white/70 sm:text-base">
-            Fill in your details to schedule your MBBS counselling call. Your request is stored in the backend and reviewed by our admin team.
+            Fill in your details to schedule your MBBS counselling call. Your request will be sent to our team and we will contact you soon.
           </p>
         </div>
 
@@ -1906,7 +2150,7 @@ function BookAppointmentSection() {
           <input required className="rounded-2xl border border-white/15 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" onChange={(event) => onChange('fullName', event.target.value)} placeholder="Full name" type="text" value={form.fullName} />
           <input required className="rounded-2xl border border-white/15 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" onChange={(event) => onChange('email', event.target.value)} placeholder="Email" type="email" value={form.email} />
           <input required className="rounded-2xl border border-white/15 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" onChange={(event) => onChange('phone', event.target.value)} placeholder="Phone number" type="tel" value={form.phone} />
-          <input required className="rounded-2xl border border-white/15 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" onChange={(event) => onChange('preferredDate', event.target.value)} type="date" value={form.preferredDate} />
+          <input required className="appointment-date-input rounded-md border border-[#d6d6d6] bg-white px-4 py-3 text-sm text-[#111111] outline-none focus:border-[#9f9f9f] focus:ring-2 focus:ring-white/25" min={todayDate} onChange={(event) => onChange('preferredDate', event.target.value)} type="date" value={form.preferredDate} />
           <textarea className="min-h-28 rounded-2xl border border-white/15 bg-black/20 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40" onChange={(event) => onChange('message', event.target.value)} placeholder="Anything specific you want help with?" value={form.message} />
 
           {error ? <p className="text-sm text-rose-300">{error}</p> : null}
@@ -1993,24 +2237,36 @@ function AdminPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'appointments' | 'colleges' | 'feedback'>('appointments');
   const [appointments, setAppointments] = useState<AppointmentRow[]>([]);
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentRow | null>(null);
   const [colleges, setColleges] = useState<CollegeAdminRow[]>([]);
   const [feedbacks, setFeedbacks] = useState<FeedbackAdminRow[]>([]);
+  const [loginEmail, setLoginEmail] = useState(ADMIN_EMAIL);
+  const [loginPassword, setLoginPassword] = useState('');
   const [collegeSearch, setCollegeSearch] = useState('');
   const [collegeStateFilter, setCollegeStateFilter] = useState('all');
   const [collegeTypeFilter, setCollegeTypeFilter] = useState('all');
   const [loading, setLoading] = useState(false);
+  const [savingAppointmentId, setSavingAppointmentId] = useState<string>('');
   const [savingCollegeId, setSavingCollegeId] = useState<string>('');
   const [savingFeedbackId, setSavingFeedbackId] = useState<string>('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const adminEmail = session?.user.email?.toLowerCase() ?? '';
-  const authorized = authReady && adminEmail === ADMIN_EMAIL;
+  const authorized = authReady && isAdminConfigured && adminEmail === ADMIN_EMAIL;
 
   useEffect(() => {
     let isMounted = true;
 
     if (!supabase) {
       setError('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your environment.');
+      setAuthReady(true);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (!isAdminConfigured) {
+      setError('Admin email is not configured. Add VITE_ADMIN_EMAIL to your environment.');
       setAuthReady(true);
       return () => {
         isMounted = false;
@@ -2123,6 +2379,30 @@ function AdminPage() {
     }
   };
 
+  const setAppointmentReadStatus = async (appointment: AppointmentRow, isRead: boolean) => {
+    const id = String(appointment.id ?? '');
+    if (!id) {
+      setError('Appointment ID is missing.');
+      return;
+    }
+
+    setSavingAppointmentId(id);
+    setError('');
+    setNotice('');
+
+    try {
+      const updated = await updateAppointmentReadStatus(id, isRead);
+      const nextAppointment = { ...appointment, ...(updated ?? {}), is_read: isRead };
+      setAppointments((current) => current.map((row) => (String(row.id) === id ? nextAppointment : row)));
+      setSelectedAppointment((current) => (current && String(current.id) === id ? nextAppointment : current));
+      setNotice(isRead ? `Appointment ${id} marked as read.` : `Appointment ${id} marked as unread.`);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Failed to update appointment.');
+    } finally {
+      setSavingAppointmentId('');
+    }
+  };
+
   const setFeedbackApproval = async (feedback: FeedbackAdminRow, isPublished: boolean) => {
     const id = String(feedback.id);
     setSavingFeedbackId(id);
@@ -2140,15 +2420,31 @@ function AdminPage() {
     }
   };
 
-  const onAuthorize = async () => {
+  const onAuthorize = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const email = loginEmail.trim().toLowerCase();
+    const password = loginPassword.trim();
+
+    if (email !== ADMIN_EMAIL) {
+      setError(`Access is restricted to ${ADMIN_EMAIL}.`);
+      return;
+    }
+
+    if (!password) {
+      setError('Enter the admin password.');
+      return;
+    }
+
     setAuthLoading(true);
     setError('');
     setNotice('');
 
     try {
-      await signInAdminWithGoogle();
+      await signInAdminWithPassword(email, password);
+      setLoginPassword('');
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : 'Google sign-in failed.');
+      setError(getAdminAuthErrorMessage(authError));
       setAuthLoading(false);
     }
   };
@@ -2160,9 +2456,12 @@ function AdminPage() {
 
     try {
       await signOutAdmin();
+      clearCachedData([APPOINTMENTS_CACHE_KEY, ADMIN_COLLEGES_CACHE_KEY, ADMIN_FEEDBACK_CACHE_KEY]);
+      setSession(null);
       setAppointments([]);
       setColleges([]);
       setFeedbacks([]);
+      setSelectedAppointment(null);
       setCollegeSearch('');
       setCollegeStateFilter('all');
       setCollegeTypeFilter('all');
@@ -2176,13 +2475,16 @@ function AdminPage() {
   const refreshActiveTab = () => {
     setNotice('');
     if (activeTab === 'appointments') {
+      clearCachedData([APPOINTMENTS_CACHE_KEY]);
       void loadAppointments();
       return;
     }
     if (activeTab === 'feedback') {
+      clearCachedData([ADMIN_FEEDBACK_CACHE_KEY]);
       void loadFeedbacks();
       return;
     }
+    clearCachedData([ADMIN_COLLEGES_CACHE_KEY]);
     void loadColleges();
   };
 
@@ -2223,17 +2525,38 @@ function AdminPage() {
 
         <section className="rounded-[30px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 md:p-10">
           <h1 className="text-[clamp(2rem,6vw,4rem)] font-black uppercase leading-none tracking-tight">Admin Dashboard</h1>
-          <p className="mt-4 text-sm text-white/70 sm:text-base">Access is restricted to the configured admin Google account.</p>
 
-          {!authReady ? <p className="mt-6 text-sm text-white/65">Checking admin session...</p> : null}
+          {!authReady ? <MedicalLoader label="Checking admin session" /> : null}
 
           {authReady && !session ? (
-            <div className="mt-6 flex max-w-xl flex-col gap-4">
-              <p className="text-sm text-white/75">Sign in with Google to continue to the admin panel.</p>
-              <button className="w-fit rounded-full border border-white/25 bg-white/10 px-6 py-3 text-xs font-semibold uppercase tracking-[0.24em] disabled:cursor-not-allowed disabled:opacity-60" disabled={authLoading} onClick={() => void onAuthorize()} type="button">
-                {authLoading ? 'Connecting...' : 'Continue with Google'}
+            <form className="mt-6 flex max-w-xl flex-col gap-4" onSubmit={(event) => void onAuthorize(event)}>
+              <p className="text-sm text-white/75">Sign in with the admin email and password to continue.</p>
+              <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+                Email
+                <input
+                  autoComplete="email"
+                  className="rounded-2xl border border-white/15 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none transition-colors placeholder:text-white/35 focus:border-white/35"
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                  type="email"
+                  value={loginEmail}
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+                Password
+                <input
+                  autoComplete="current-password"
+                  className="rounded-2xl border border-white/15 bg-black/25 px-4 py-3 text-sm normal-case tracking-normal text-white outline-none transition-colors placeholder:text-white/35 focus:border-white/35"
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  placeholder="Enter admin password"
+                  type="password"
+                  value={loginPassword}
+                />
+              </label>
+              <button className="w-fit rounded-full border border-white/25 bg-white/10 px-6 py-3 text-xs font-semibold uppercase tracking-[0.24em] disabled:cursor-not-allowed disabled:opacity-60" disabled={authLoading} type="submit">
+                {authLoading ? 'Signing In...' : 'Sign In'}
               </button>
-            </div>
+              {authLoading ? <MedicalLoader label="Signing in" /> : null}
+            </form>
           ) : null}
 
           {authReady && session && !authorized ? (
@@ -2259,9 +2582,8 @@ function AdminPage() {
 
               <div className="mb-5 flex flex-wrap items-center gap-3">
                 <button
-                  className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
-                    activeTab === 'appointments' ? 'border-white/35 bg-white/10 text-white' : 'border-white/20 text-white/75 hover:bg-white/10'
-                  }`}
+                  className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${activeTab === 'appointments' ? 'border-white/35 bg-white/10 text-white' : 'border-white/20 text-white/75 hover:bg-white/10'
+                    }`}
                   onClick={() => {
                     setActiveTab('appointments');
                     setNotice('');
@@ -2272,9 +2594,8 @@ function AdminPage() {
                   Appointments
                 </button>
                 <button
-                  className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
-                    activeTab === 'colleges' ? 'border-white/35 bg-white/10 text-white' : 'border-white/20 text-white/75 hover:bg-white/10'
-                  }`}
+                  className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${activeTab === 'colleges' ? 'border-white/35 bg-white/10 text-white' : 'border-white/20 text-white/75 hover:bg-white/10'
+                    }`}
                   onClick={() => {
                     setActiveTab('colleges');
                     setNotice('');
@@ -2285,9 +2606,8 @@ function AdminPage() {
                   Edit Colleges
                 </button>
                 <button
-                  className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${
-                    activeTab === 'feedback' ? 'border-white/35 bg-white/10 text-white' : 'border-white/20 text-white/75 hover:bg-white/10'
-                  }`}
+                  className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.2em] transition-colors ${activeTab === 'feedback' ? 'border-white/35 bg-white/10 text-white' : 'border-white/20 text-white/75 hover:bg-white/10'
+                    }`}
                   onClick={() => {
                     setActiveTab('feedback');
                     setNotice('');
@@ -2348,36 +2668,155 @@ function AdminPage() {
                 </div>
               ) : null}
 
-              {loading ? <p className="text-sm text-white/65">Loading...</p> : null}
+              {loading ? <MedicalLoader label={`Loading ${activeTab}`} /> : null}
 
               {!loading && activeTab === 'appointments' ? (
-                <div className="overflow-x-auto rounded-2xl border border-white/10">
-                  <table className="min-w-full border-collapse text-left text-sm">
-                    <thead className="bg-white/[0.04] text-white/75">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Name</th>
-                        <th className="px-4 py-3 font-medium">Email</th>
-                        <th className="px-4 py-3 font-medium">Phone</th>
-                        <th className="px-4 py-3 font-medium">Preferred Date</th>
-                        <th className="px-4 py-3 font-medium">Message</th>
-                        <th className="px-4 py-3 font-medium">Created</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {appointments.map((row) => (
-                        <tr key={String(row.id ?? `${row.email}-${row.created_at}`)} className="border-t border-white/10 align-top text-white/85">
-                          <td className="px-4 py-3">{row.full_name || '-'}</td>
-                          <td className="px-4 py-3">{row.email || '-'}</td>
-                          <td className="px-4 py-3">{row.phone || '-'}</td>
-                          <td className="px-4 py-3">{row.preferred_date || '-'}</td>
-                          <td className="px-4 py-3">{row.message || '-'}</td>
-                          <td className="px-4 py-3">{row.created_at ? new Date(row.created_at).toLocaleString() : '-'}</td>
+                <div className="mx-auto w-full max-w-full rounded-lg border border-white/10 bg-[#101010] p-6 text-white shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+                  <h2 className="mb-4 text-lg font-semibold">Appointment List</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-left text-sm">
+                      <motion.thead animate={{ opacity: 1 }} initial={{ opacity: 0 }} transition={{ duration: 0.5 }}>
+                        <tr className="border-b border-slate-200">
+                          <th className="w-12 p-4 font-medium text-slate-500" scope="col">No</th>
+                          <th className="p-4 font-medium text-slate-500" scope="col">Task</th>
+                          <th className="p-4 font-medium text-slate-500" scope="col">Category</th>
+                          <th className="p-4 font-medium text-slate-500" scope="col">Status</th>
+                          <th className="p-4 text-right font-medium text-slate-500" scope="col">Due Date</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </motion.thead>
+
+                      <motion.tbody animate="visible" initial="hidden" variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}>
+                        <AnimatePresence>
+                          {appointments.map((row, index) => {
+                            const id = String(row.id ?? `${row.email}-${row.created_at}`);
+                            const isRead = valueToBoolean(row.is_read) === true;
+                            const isSaving = savingAppointmentId === String(row.id ?? '');
+
+                            return (
+                              <motion.tr
+                                key={id}
+                                className="cursor-pointer border-b border-white/10 last:border-none hover:bg-white/[0.04]"
+                                exit={{ opacity: 0, y: -10 }}
+                                initial={{ opacity: 0, y: 20 }}
+                                onClick={() => {
+                                  setSelectedAppointment(row);
+                                  if (!isRead) {
+                                    void setAppointmentReadStatus(row, true);
+                                  }
+                                }}
+                                transition={{ type: 'spring', stiffness: 100, damping: 14 }}
+                                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                              >
+                                <td className="p-4 text-slate-500">{index + 1}</td>
+                                <td className="p-4 font-medium">
+                                  <p>{row.full_name || 'Unnamed student'}</p>
+                                  <p className="mt-1 line-clamp-1 max-w-xs text-xs font-normal text-slate-500">{row.message || 'No message added.'}</p>
+                                </td>
+                                <td className="p-4 text-slate-500">
+                                  <p className="break-words">{row.email || '-'}</p>
+                                  <p className="mt-1 text-xs text-slate-400">{row.phone || '-'}</p>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${isRead ? 'bg-green-950/40 text-green-400' : 'bg-gray-800 text-gray-300'}`}>
+                                      {isRead ? 'Read' : 'Unread'}
+                                    </span>
+                                    <button className="rounded-full border border-white/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/65 hover:bg-white/10 disabled:opacity-60" disabled={isSaving} onClick={(event) => { event.stopPropagation(); void setAppointmentReadStatus(row, !isRead); }} type="button">
+                                      {isSaving ? 'Saving' : isRead ? 'Unread' : 'Read'}
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="p-4 text-right text-slate-500">{row.preferred_date || '-'}</td>
+                              </motion.tr>
+                            );
+                          })}
+                        </AnimatePresence>
+                      </motion.tbody>
+                    </table>
+                  </div>
                 </div>
               ) : null}
+
+              {activeTab === 'appointments' && appointments.length === 0 && !loading ? (
+                <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm text-white/60">No appointments found.</p>
+              ) : null}
+
+              <AnimatePresence>
+                {selectedAppointment ? (
+                  <motion.div
+                    animate={{ opacity: 1 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-sm"
+                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0 }}
+                    onClick={() => setSelectedAppointment(null)}
+                  >
+                    <motion.div
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[32px] border border-white/10 bg-[#111111] p-6 text-white shadow-[0_30px_100px_rgba(0,0,0,0.5)] sm:p-8"
+                      exit={{ opacity: 0, y: 20, scale: 0.98 }}
+                      initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                      onClick={(event) => event.stopPropagation()}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    >
+                      <button
+                        aria-label="Close appointment details"
+                        className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                        onClick={() => setSelectedAppointment(null)}
+                        type="button"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+
+                      <p className="text-xs uppercase tracking-[0.24em] text-white/45">Appointment Details</p>
+                      <h3 className="mt-3 pr-12 text-[clamp(1.8rem,5vw,3rem)] font-black uppercase leading-none tracking-tight">
+                        {selectedAppointment.full_name || 'Unnamed student'}
+                      </h3>
+
+                      <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <span className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${valueToBoolean(selectedAppointment.is_read) === true ? 'bg-white/10 text-white/60' : 'bg-amber-500/15 text-amber-200'}`}>
+                          {valueToBoolean(selectedAppointment.is_read) === true ? 'Read' : 'Unread'}
+                        </span>
+                        <button
+                          className="rounded-full border border-white/20 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/90 hover:bg-white/10 disabled:opacity-60"
+                          disabled={savingAppointmentId === String(selectedAppointment.id ?? '')}
+                          onClick={() => void setAppointmentReadStatus(selectedAppointment, valueToBoolean(selectedAppointment.is_read) !== true)}
+                          type="button"
+                        >
+                          {savingAppointmentId === String(selectedAppointment.id ?? '')
+                            ? 'Saving'
+                            : valueToBoolean(selectedAppointment.is_read) === true
+                              ? 'Mark Unread'
+                              : 'Mark Read'}
+                        </button>
+                      </div>
+
+                      <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Email</p>
+                          <p className="mt-2 break-words text-sm font-semibold text-white">{selectedAppointment.email || '-'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Phone</p>
+                          <p className="mt-2 text-sm font-semibold text-white">{selectedAppointment.phone || '-'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Preferred Date</p>
+                          <p className="mt-2 text-sm font-semibold text-white">{selectedAppointment.preferred_date || '-'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Created</p>
+                          <p className="mt-2 text-sm font-semibold text-white">{selectedAppointment.created_at ? new Date(selectedAppointment.created_at).toLocaleString() : '-'}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Message</p>
+                        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-white/80">{selectedAppointment.message || 'No message added.'}</p>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
 
               {!loading && activeTab === 'colleges' ? (
                 <div className="overflow-x-auto rounded-2xl border border-white/10">
@@ -2621,18 +3060,7 @@ function CollagePage() {
         </section>
 
         {loading ? (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="overflow-hidden rounded-[30px] border border-white/10 bg-white/5">
-                <div className="h-56 animate-pulse bg-white/10" />
-                <div className="space-y-3 p-6">
-                  <div className="h-6 w-3/4 animate-pulse rounded-full bg-white/10" />
-                  <div className="h-4 w-1/2 animate-pulse rounded-full bg-white/10" />
-                  <div className="h-4 w-2/3 animate-pulse rounded-full bg-white/10" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <MedicalLoader label="Loading colleges" />
         ) : null}
 
         {!loading && error ? (
@@ -2644,8 +3072,6 @@ function CollagePage() {
 
         {!loading && !error ? (
           <div className="mb-6 flex items-center justify-between gap-4">
-            <p className="text-sm uppercase tracking-[0.24em] text-white/55">{filteredColleges.length} colleges shown</p>
-            <p className="text-xs uppercase tracking-[0.22em] text-white/40">Filter by college name, state, and type</p>
           </div>
         ) : null}
 
