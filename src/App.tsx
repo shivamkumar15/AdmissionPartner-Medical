@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, BookOpen, CalendarDays, ExternalLink, Facebook, Home, Info, Instagram, Linkedin, MessageCircle, Quote, Star, X, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, ChevronDown, ExternalLink, Facebook, Home, Info, Instagram, Linkedin, MessageCircle, Quote, Star, X, type LucideIcon } from 'lucide-react';
 import { type CSSProperties, type ElementType, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import logoImage from '../Logo.jpg';
@@ -383,6 +383,13 @@ const feedbackRatingCandidates = ['rating', 'stars', 'score'];
 const feedbackAvatarCandidates = ['avatar', 'avatar_url', 'image', 'image_url', 'photo', 'photo_url'];
 const feedbackPublishedCandidates = ['is_published', 'published', 'active', 'approved', 'visible'];
 
+const collegeFeeRanges = [
+  { label: 'Under 1 lakh', max: 100000 },
+  { label: '1-5 lakh', min: 100000, max: 500000 },
+  { label: '5-10 lakh', min: 500000, max: 1000000 },
+  { label: 'Above 10 lakh', min: 1000000 },
+];
+
 type CollegeTableRow = Record<string, unknown>;
 type FeedbackRow = Record<string, unknown>;
 
@@ -406,6 +413,11 @@ type FadeInProps = {
   duration?: number;
   x?: number;
   y?: number;
+};
+
+type FilterOption = {
+  label: string;
+  value: string;
 };
 
 type AppointmentFormState = {
@@ -569,6 +581,38 @@ function valueToBoolean(value: unknown) {
 function valueToNumber(value: unknown, fallback: number) {
   const numericValue = Number.parseInt(valueToString(value), 10);
   return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
+function feeToRupees(fees: string) {
+  const normalizedFees = fees.toLowerCase().replace(/,/g, '');
+  const matches = [...normalizedFees.matchAll(/(\d+(?:\.\d+)?)\s*(crore|cr|lakh|lac|k)?/g)];
+
+  const parsedFees = matches
+    .map((match) => {
+      const amount = Number.parseFloat(match[1]);
+      const unit = match[2];
+
+      if (!Number.isFinite(amount)) {
+        return null;
+      }
+
+      if (unit === 'crore' || unit === 'cr') {
+        return amount * 10000000;
+      }
+
+      if (unit === 'lakh' || unit === 'lac') {
+        return amount * 100000;
+      }
+
+      if (unit === 'k') {
+        return amount * 1000;
+      }
+
+      return amount;
+    })
+    .filter((amount): amount is number => amount !== null && amount > 0);
+
+  return parsedFees.length ? Math.min(...parsedFees) : null;
 }
 
 function getPersistentCacheKey(key: string) {
@@ -1136,7 +1180,9 @@ function ContactButton() {
   return (
     <a
       className="inline-flex rounded-full border-2 border-white px-8 py-3 text-xs font-medium uppercase tracking-[0.28em] text-white outline outline-2 outline-white outline-offset-[-3px] transition-opacity duration-200 hover:opacity-90 sm:px-10 sm:py-3.5 sm:text-sm md:px-12 md:py-4 md:text-base"
-      href="mailto:jack@example.com"
+      href="https://wa.me/919540108254"
+      target="_blank"
+      rel="noreferrer"
       style={{
         background: 'linear-gradient(123deg, #18011F 7%, #B600A8 37%, #7621B0 72%, #BE4C00 100%)',
         boxShadow: '0px 4px 4px rgba(181, 1, 167, 0.25), 4px 4px 12px #7721B1 inset',
@@ -1229,18 +1275,71 @@ function AnimatedText({ text }: { text: string }) {
 function MedicalLoader({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="flex min-h-[260px] flex-col items-center justify-center gap-5 text-center">
-      <div aria-hidden="true" className="medical-loader">
-        <div className="medical-loader__bar-one">
-          <div className="medical-loader__bar-two">
-            <div className="medical-loader__bubble medical-loader__bubble--one" />
-            <div className="medical-loader__bubble medical-loader__bubble--two" />
-            <div className="medical-loader__bubble medical-loader__bubble--three" />
-            <div className="medical-loader__bubble medical-loader__bubble--four" />
-            <div className="medical-loader__bubble medical-loader__bubble--five" />
+      <div aria-label="Orange and tan hamster running in a metal wheel" className="wheel-and-hamster" role="img">
+        <div className="wheel" />
+        <div className="hamster">
+          <div className="hamster__body">
+            <div className="hamster__head">
+              <div className="hamster__ear" />
+              <div className="hamster__eye" />
+              <div className="hamster__nose" />
+            </div>
+            <div className="hamster__limb hamster__limb--fr" />
+            <div className="hamster__limb hamster__limb--fl" />
+            <div className="hamster__limb hamster__limb--br" />
+            <div className="hamster__limb hamster__limb--bl" />
+            <div className="hamster__tail" />
           </div>
         </div>
+        <div className="spoke" />
       </div>
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/55">{label}</p>
+    </div>
+  );
+}
+
+function AnimatedFilterSelect({ label, onChange, options, value }: { label: string; onChange: (value: string) => void; options: FilterOption[]; value: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const selectedOption = options.find((option) => option.value === value) ?? options[0];
+
+  useEffect(() => {
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!wrapperRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeOnOutsideClick);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className={`filter-menu ${isOpen ? 'filter-menu--open' : ''}`} onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+      <div className="filter-menu__item">
+        <button aria-expanded={isOpen} className="filter-menu__link" onClick={() => setIsOpen((current) => !current)} type="button">
+          <span className="filter-menu__text">
+            <span className="filter-menu__label">{label}</span>
+            <span className="filter-menu__value">{selectedOption?.label ?? label}</span>
+          </span>
+          <ChevronDown className="filter-menu__icon" aria-hidden="true" />
+        </button>
+        <div className="filter-menu__submenu">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              className={`filter-menu__submenu-link ${option.value === value ? 'filter-menu__submenu-link--active' : ''}`}
+              onClick={() => {
+                onChange(option.value);
+                setIsOpen(false);
+              }}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1403,6 +1502,18 @@ function CinematicHeroSection() {
   const animationFrameRef = useRef<number | null>(null);
   const fadingOutRef = useRef(false);
   const restartTimeoutRef = useRef<number | null>(null);
+  const [heroEmail, setHeroEmail] = useState('');
+
+  const goToAppointment = (email = heroEmail) => {
+    const trimmedEmail = email.trim();
+    window.location.href = trimmedEmail ? `/book-appointment?email=${encodeURIComponent(trimmedEmail)}` : '/book-appointment';
+  };
+
+  const handleHeroEmailSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const submittedEmail = new FormData(event.currentTarget).get('hero-email');
+    goToAppointment(typeof submittedEmail === 'string' ? submittedEmail : heroEmail);
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1555,14 +1666,27 @@ function CinematicHeroSection() {
           <div className="relative w-full max-w-xl space-y-4">
             <form
               className="liquid-glass relative z-20 flex items-center gap-3 rounded-full py-2 pl-6 pr-2 shadow-[0_0_30px_rgba(255,255,255,0.08)]"
-              onSubmit={(event) => event.preventDefault()}
+              onSubmit={handleHeroEmailSubmit}
             >
               <input
                 className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-white/40"
+                name="hero-email"
+                onChange={(event) => setHeroEmail(event.target.value)}
                 placeholder="Enter your email"
+                required
                 type="email"
+                value={heroEmail}
               />
-              <button aria-label="Submit email" className="rounded-full bg-white p-3 text-black" type="submit">
+              <button
+                aria-label="Submit email"
+                className="rounded-full bg-white p-3 text-black"
+                onClick={(event) => {
+                  event.preventDefault();
+                  const emailInput = event.currentTarget.form?.elements.namedItem('hero-email') as HTMLInputElement | null;
+                  goToAppointment(emailInput?.value ?? heroEmail);
+                }}
+                type="submit"
+              >
                 <ArrowRight size={20} />
               </button>
             </form>
@@ -1573,9 +1697,10 @@ function CinematicHeroSection() {
             <div className="flex justify-center">
               <button
                 className="liquid-glass rounded-full px-8 py-3 text-sm font-medium text-white shadow-[0_0_26px_rgba(255,255,255,0.1)] transition-colors hover:bg-white/5"
+                onClick={() => goToAppointment()}
                 type="button"
               >
-                Talk to MBBS Expert
+                Talk to Expert counsellor
               </button>
             </div>
           </div>
@@ -2099,7 +2224,7 @@ function BookAppointmentSection() {
   const todayDate = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState<AppointmentFormState>({
     fullName: '',
-    email: '',
+    email: typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('email') || '' : '',
     phone: '',
     preferredDate: '',
     message: '',
@@ -2936,7 +3061,9 @@ function CollagePage() {
     return '';
   });
   const [collegeStateFilter, setCollegeStateFilter] = useState('all');
+  const [collegeCityFilter, setCollegeCityFilter] = useState('all');
   const [collegeTypeFilter, setCollegeTypeFilter] = useState('all');
+  const [collegeFeeFilter, setCollegeFeeFilter] = useState('all');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedCollege, setSelectedCollege] = useState<CollageCollege | null>(null);
@@ -2990,10 +3117,23 @@ function CollagePage() {
     return [...new Set(states)].sort((a, b) => a.localeCompare(b));
   }, [colleges]);
 
+  const collageCities = useMemo(() => {
+    const cities = colleges
+      .filter((college) => collegeStateFilter === 'all' || college.state.toLowerCase() === collegeStateFilter.toLowerCase())
+      .map((college) => college.city.trim())
+      .filter(Boolean);
+    return [...new Set(cities)].sort((a, b) => a.localeCompare(b));
+  }, [colleges, collegeStateFilter]);
+
   const collageTypes = useMemo(() => {
     const types = colleges.map((college) => college.type.trim()).filter(Boolean);
     return [...new Set(types)].sort((a, b) => a.localeCompare(b));
   }, [colleges]);
+
+  const stateFilterOptions = useMemo(() => [{ label: 'All states', value: 'all' }, ...collageStates.map((state) => ({ label: state, value: state }))], [collageStates]);
+  const cityFilterOptions = useMemo(() => [{ label: 'All cities', value: 'all' }, ...collageCities.map((city) => ({ label: city, value: city }))], [collageCities]);
+  const typeFilterOptions = useMemo(() => [{ label: 'All types', value: 'all' }, ...collageTypes.map((type) => ({ label: type, value: type }))], [collageTypes]);
+  const feeFilterOptions = useMemo(() => [{ label: 'All fees', value: 'all' }, ...collegeFeeRanges.map((range) => ({ label: range.label, value: range.label }))], []);
 
   const filteredColleges = useMemo(() => {
     const normalizedSearch = collegeSearch.trim().toLowerCase();
@@ -3002,12 +3142,26 @@ function CollagePage() {
       .filter((college) => {
         const matchesName = !normalizedSearch || college.name.toLowerCase().includes(normalizedSearch);
         const matchesState = collegeStateFilter === 'all' || college.state.toLowerCase() === collegeStateFilter.toLowerCase();
+        const matchesCity = collegeCityFilter === 'all' || college.city.toLowerCase() === collegeCityFilter.toLowerCase();
         const matchesType = collegeTypeFilter === 'all' || college.type.toLowerCase() === collegeTypeFilter.toLowerCase();
+        const feeRange = collegeFeeRanges.find((range) => range.label === collegeFeeFilter);
+        const collegeFee = feeToRupees(college.fees);
+        const matchesFee = !feeRange || (collegeFee !== null && (feeRange.min === undefined || collegeFee >= feeRange.min) && (feeRange.max === undefined || collegeFee <= feeRange.max));
 
-        return matchesName && matchesState && matchesType;
+        return matchesName && matchesState && matchesCity && matchesType && matchesFee;
       })
       .sort((left, right) => left.name.localeCompare(right.name));
-  }, [colleges, collegeSearch, collegeStateFilter, collegeTypeFilter]);
+  }, [colleges, collegeSearch, collegeCityFilter, collegeFeeFilter, collegeStateFilter, collegeTypeFilter]);
+
+  const hasActiveCollegeFilters = Boolean(collegeSearch.trim()) || collegeStateFilter !== 'all' || collegeCityFilter !== 'all' || collegeTypeFilter !== 'all' || collegeFeeFilter !== 'all';
+
+  const clearCollegeFilters = () => {
+    setCollegeSearch('');
+    setCollegeStateFilter('all');
+    setCollegeCityFilter('all');
+    setCollegeTypeFilter('all');
+    setCollegeFeeFilter('all');
+  };
 
   return (
     <main className="portfolio-shell min-h-screen bg-[#0C0C0C] px-5 py-6 text-[#D7E2EA] sm:px-8 md:px-10">
@@ -3024,38 +3178,38 @@ function CollagePage() {
         <section className="mb-10 rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),rgba(255,255,255,0.04)_36%,rgba(255,255,255,0.02)_100%)] px-6 py-10 sm:px-8 md:px-10">
           <p className="text-sm font-medium uppercase tracking-[0.3em] text-white/55">Collage</p>
           <h1 className="mt-4 text-[clamp(2.6rem,8vw,6rem)] font-black uppercase leading-none tracking-tight text-white">All Medical Colleges</h1>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            <input
-              className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
-              onChange={(event) => setCollegeSearch(event.target.value)}
-              placeholder="Search by college name"
-              type="text"
-              value={collegeSearch}
-            />
-            <select
-              className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none"
-              onChange={(event) => setCollegeStateFilter(event.target.value)}
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="collage-search-inputbox">
+              <input
+                aria-label="Search by collage name"
+                onChange={(event) => setCollegeSearch(event.target.value)}
+                required
+                type="text"
+                value={collegeSearch}
+              />
+              <span>Search by collage name</span>
+              <i />
+            </div>
+            <AnimatedFilterSelect
+              label="State"
+              onChange={(nextState) => {
+                setCollegeStateFilter(nextState);
+                setCollegeCityFilter('all');
+              }}
+              options={stateFilterOptions}
               value={collegeStateFilter}
-            >
-              <option value="all">All states</option>
-              {collageStates.map((state) => (
-                <option key={state} value={state}>
-                  {state}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-xl border border-white/15 bg-black/20 px-3 py-2 text-sm text-white outline-none"
-              onChange={(event) => setCollegeTypeFilter(event.target.value)}
-              value={collegeTypeFilter}
-            >
-              <option value="all">All types</option>
-              {collageTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+            />
+            <AnimatedFilterSelect label="City" onChange={setCollegeCityFilter} options={cityFilterOptions} value={collegeCityFilter} />
+            <AnimatedFilterSelect label="Type" onChange={setCollegeTypeFilter} options={typeFilterOptions} value={collegeTypeFilter} />
+            <AnimatedFilterSelect label="Fees" onChange={setCollegeFeeFilter} options={feeFilterOptions} value={collegeFeeFilter} />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
+            <span>{filteredColleges.length} of {colleges.length} colleges shown</span>
+            {hasActiveCollegeFilters ? (
+              <button className="rounded-full border border-white/15 px-4 py-2 font-semibold text-white/75 transition-colors hover:bg-white/10 hover:text-white" onClick={clearCollegeFilters} type="button">
+                Clear Filters
+              </button>
+            ) : null}
           </div>
         </section>
 
@@ -3071,8 +3225,7 @@ function CollagePage() {
         ) : null}
 
         {!loading && !error ? (
-          <div className="mb-6 flex items-center justify-between gap-4">
-          </div>
+          <div className="mb-6 flex items-center justify-between gap-4" />
         ) : null}
 
         {!loading && !error ? (
