@@ -6,6 +6,7 @@ import logoImage from '../Logo.jpg';
 
 const VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_115001_bcdaa3b4-03de-47e7-ad63-ae3e392c32d4.mp4';
+const MEDIA_CACHE_WORKER_URL = '/media-cache-worker.js';
 const FADE_DURATION_MS = 500;
 const LOOP_RESET_DELAY_MS = 100;
 const FADE_OUT_THRESHOLD_SECONDS = 0.55;
@@ -26,6 +27,24 @@ function getSupabaseConfig() {
     key: SUPABASE_PUBLISHABLE_KEY,
     url: SUPABASE_URL,
   };
+}
+
+function registerMediaCacheWorker() {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register(MEDIA_CACHE_WORKER_URL)
+      .then((registration) => navigator.serviceWorker.ready.then(() => registration.active ?? navigator.serviceWorker.controller))
+      .then((worker) => {
+        worker?.postMessage({ type: 'CACHE_HERO_VIDEO', url: VIDEO_URL });
+      })
+      .catch(() => {
+        // Media cache is an enhancement; the hero video still works without it.
+      });
+  }, { once: true });
 }
 
 const supabase = isSupabaseConfigured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
@@ -1625,7 +1644,7 @@ function CinematicHeroSection() {
         className="absolute inset-0 h-full w-full translate-y-[17%] object-cover"
         muted
         playsInline
-        preload="metadata"
+        preload="auto"
         src={VIDEO_URL}
         style={{ willChange: 'opacity, transform' }}
       />
@@ -3296,6 +3315,10 @@ function CollagePage() {
 
 function App() {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+
+  useEffect(() => {
+    registerMediaCacheWorker();
+  }, []);
 
   if (pathname === '/collage') {
     return <CollagePage />;
