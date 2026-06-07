@@ -5,6 +5,7 @@ create table if not exists public.feedbacks (
   content text not null,
   rating integer default 5,
   avatar_url text,
+  video_url text,
   is_published boolean default false,
   created_at timestamptz default now()
 );
@@ -20,6 +21,9 @@ create table if not exists public.appointments (
   is_read boolean default false,
   created_at timestamptz default now()
 );
+
+alter table public.feedbacks
+add column if not exists video_url text;
 
 alter table public.appointments
 add column if not exists is_read boolean default false;
@@ -71,3 +75,23 @@ for all
 to authenticated
 using (auth.jwt() ->> 'email' = 'admin@example.com')
 with check (auth.jwt() ->> 'email' = 'admin@example.com');
+
+-- Create storage bucket for feedback videos
+insert into storage.buckets (id, name, public)
+values ('feedback-videos', 'feedback-videos', true)
+on conflict (id) do nothing;
+
+-- Enable RLS on storage.objects if it is not enabled
+alter table storage.objects enable row level security;
+
+-- Storage Policies for anyone to upload feedback videos
+drop policy if exists "Anyone can upload feedback videos" on storage.objects;
+create policy "Anyone can upload feedback videos"
+on storage.objects for insert to public
+with check (bucket_id = 'feedback-videos');
+
+-- Storage Policies for anyone to view feedback videos
+drop policy if exists "Anyone can view feedback videos" on storage.objects;
+create policy "Anyone can view feedback videos"
+on storage.objects for select to public
+using (bucket_id = 'feedback-videos');

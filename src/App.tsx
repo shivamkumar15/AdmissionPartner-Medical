@@ -401,6 +401,7 @@ const feedbackContentCandidates = ['content', 'feedback', 'message', 'review', '
 const feedbackRatingCandidates = ['rating', 'stars', 'score'];
 const feedbackAvatarCandidates = ['avatar', 'avatar_url', 'image', 'image_url', 'photo', 'photo_url'];
 const feedbackPublishedCandidates = ['is_published', 'published', 'active', 'approved', 'visible'];
+const feedbackVideoCandidates = ['video_url', 'video', 'video_link'];
 
 const collegeFeeRanges = [
   { label: 'Under 1 lakh', max: 100000 },
@@ -452,6 +453,7 @@ type FeedbackFormState = {
   name: string;
   rating: number;
   role: string;
+  video_url?: string;
 };
 
 type AppointmentRow = {
@@ -487,6 +489,7 @@ type FeedbackAdminRow = {
   name?: string;
   rating?: number | string;
   role?: string;
+  video_url?: string;
 };
 
 type NavMenuItem = {
@@ -504,6 +507,7 @@ type StudentTestimonial = {
   content: string;
   rating: number;
   avatar: string;
+  video_url?: string;
 };
 
 type DataCacheEntry<T> = {
@@ -840,6 +844,29 @@ async function fetchColleges() {
   });
 }
 
+function getEmbedUrl(url: string | undefined | null, autoplay = true): string | null {
+  if (!url) {
+    return null;
+  }
+  const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const ytMatch = url.match(ytRegex);
+  if (ytMatch && ytMatch[1]) {
+    const videoId = ytMatch[1];
+    return autoplay
+      ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`
+      : `https://www.youtube.com/embed/${videoId}`;
+  }
+  const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  if (vimeoMatch && vimeoMatch[1]) {
+    const videoId = vimeoMatch[1];
+    return autoplay
+      ? `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=1&loop=1`
+      : `https://player.vimeo.com/video/${videoId}`;
+  }
+  return null;
+}
+
 function mapFeedbackRow(row: FeedbackRow, index: number): StudentTestimonial | null {
   const publishedValue = pickRowValue(row, feedbackPublishedCandidates, false);
   const isPublished = valueToBoolean(publishedValue);
@@ -857,6 +884,7 @@ function mapFeedbackRow(row: FeedbackRow, index: number): StudentTestimonial | n
 
   const role = valueToString(pickRowValue(row, feedbackRoleCandidates));
   const avatar = valueToString(pickRowValue(row, feedbackAvatarCandidates, false));
+  const video_url = valueToString(pickRowValue(row, feedbackVideoCandidates, false));
 
   return {
     id: valueToNumber(row.id ?? row.feedback_id ?? row.created_at ?? index + 1, index + 1),
@@ -865,6 +893,7 @@ function mapFeedbackRow(row: FeedbackRow, index: number): StudentTestimonial | n
     content,
     rating: Math.max(1, Math.min(5, valueToNumber(pickRowValue(row, feedbackRatingCandidates, false), 5))),
     avatar: avatar || avatarImage(name),
+    video_url: video_url || undefined,
   };
 }
 
@@ -931,6 +960,7 @@ async function createFeedbackSubmission(form: FeedbackFormState) {
       content: form.content,
       rating: form.rating,
       avatar_url: avatarImage(form.name),
+      video_url: form.video_url || null,
     }),
   });
 
@@ -1900,7 +1930,9 @@ function TestimonialsSection() {
     role: 'Student',
     rating: 5,
     content: '',
+    video_url: '',
   });
+  const [videoFile, setVideoFile] = useState<File | null>(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
@@ -1917,10 +1949,42 @@ function TestimonialsSection() {
     setSubmitError('');
     setSubmitSuccess('');
 
+    let finalVideoUrl = form.video_url || '';
+
+    if (videoFile && supabase) {
+      try {
+        const fileExt = videoFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('feedback-videos')
+          .upload(filePath, videoFile);
+
+        if (uploadError) {
+          throw new Error(`Video upload failed: ${uploadError.message}`);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('feedback-videos')
+          .getPublicUrl(filePath);
+
+        finalVideoUrl = publicUrl;
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : 'Failed to upload video.');
+        setSubmitLoading(false);
+        return;
+      }
+    }
+
     try {
-      await createFeedbackSubmission(form);
+      await createFeedbackSubmission({
+        ...form,
+        video_url: finalVideoUrl,
+      });
       setSubmitSuccess('Feedback submitted successfully. It will appear after admin approval.');
-      setForm({ name: '', role: 'Student', rating: 5, content: '' });
+      setForm({ name: '', role: 'Student', rating: 5, content: '', video_url: '' });
+      setVideoFile(null);
     } catch (submitFeedbackError) {
       setSubmitError(submitFeedbackError instanceof Error ? submitFeedbackError.message : 'Failed to submit feedback.');
     } finally {
@@ -2084,12 +2148,39 @@ function TestimonialsSection() {
                     <span className="ml-2 text-sm text-[#0C0C0C]/55">{form.rating}/5</span>
                   </div>
 
-                  <textarea
+                   <textarea
                     required
                     className="min-h-28 rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
                     onChange={(event) => onFormChange('content', event.target.value)}
                     placeholder="Write your feedback"
                     value={form.content}
+                  />
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0C0C0C]/50">
+                      Upload Video (Optional)
+                    </label>
+                    <input
+                      className="rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none file:mr-4 file:rounded-xl file:border-0 file:bg-[#0C0C0C] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:uppercase file:text-white hover:file:bg-[#6F3DFF] file:transition-colors"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          setVideoFile(file);
+                        }
+                      }}
+                      accept="video/*"
+                      type="file"
+                    />
+                  </div>
+
+                  <div className="text-center text-xs font-semibold text-[#0C0C0C]/35">OR</div>
+
+                  <input
+                    className="rounded-2xl border border-black/10 bg-[#F5F5F1] px-4 py-3 text-sm text-[#0C0C0C] outline-none placeholder:text-[#0C0C0C]/35 focus:border-[#6F3DFF]/40"
+                    onChange={(event) => onFormChange('video_url', event.target.value)}
+                    placeholder="Video URL (e.g. YouTube, Vimeo) - Optional"
+                    type="url"
+                    value={form.video_url || ''}
                   />
 
                   {submitError ? <p className="text-sm text-rose-500">{submitError}</p> : null}
@@ -2131,6 +2222,31 @@ function TestimonialsSection() {
                       &quot;{activeTestimonial.content}&quot;
                     </p>
                   </div>
+
+                  {activeTestimonial.video_url ? (
+                    <div className="relative mb-6 aspect-video w-full overflow-hidden rounded-2xl border border-black/10 bg-black">
+                      {getEmbedUrl(activeTestimonial.video_url) ? (
+                        <iframe
+                          src={getEmbedUrl(activeTestimonial.video_url)!}
+                          title={`${activeTestimonial.name}'s Video Feedback`}
+                          className="h-full w-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          key={activeTestimonial.video_url}
+                          src={activeTestimonial.video_url}
+                          controls
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+                  ) : null}
 
                   <div className="my-4 h-px w-full bg-black/10" />
 
@@ -3015,6 +3131,7 @@ function AdminPage() {
                         <th className="px-4 py-3 font-medium">Role</th>
                         <th className="px-4 py-3 font-medium">Rating</th>
                         <th className="px-4 py-3 font-medium">Feedback</th>
+                        <th className="px-4 py-3 font-medium">Video URL</th>
                         <th className="px-4 py-3 font-medium">Status</th>
                         <th className="px-4 py-3 font-medium">Created</th>
                         <th className="px-4 py-3 font-medium">Action</th>
@@ -3032,6 +3149,20 @@ function AdminPage() {
                             <td className="px-4 py-3">{feedback.role || '-'}</td>
                             <td className="px-4 py-3">{valueToNumber(feedback.rating, 5)}/5</td>
                             <td className="max-w-md px-4 py-3 text-white/80">{feedback.content || '-'}</td>
+                            <td className="px-4 py-3">
+                              {feedback.video_url ? (
+                                <a
+                                  href={feedback.video_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-indigo-400 hover:text-indigo-300 underline break-all max-w-xs block"
+                                >
+                                  {feedback.video_url}
+                                </a>
+                              ) : (
+                                '-'
+                              )}
+                            </td>
                             <td className="px-4 py-3">
                               <span className={`rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.18em] ${isPublished ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}`}>
                                 {isPublished ? 'Approved' : 'Pending'}
@@ -3157,8 +3288,7 @@ function CollagePage() {
   const filteredColleges = useMemo(() => {
     const normalizedSearch = collegeSearch.trim().toLowerCase();
 
-    return colleges
-      .filter((college) => {
+    return colleges.filter((college) => {
         const matchesName = !normalizedSearch || college.name.toLowerCase().includes(normalizedSearch);
         const matchesState = collegeStateFilter === 'all' || college.state.toLowerCase() === collegeStateFilter.toLowerCase();
         const matchesCity = collegeCityFilter === 'all' || college.city.toLowerCase() === collegeCityFilter.toLowerCase();
@@ -3168,8 +3298,7 @@ function CollagePage() {
         const matchesFee = !feeRange || (collegeFee !== null && (feeRange.min === undefined || collegeFee >= feeRange.min) && (feeRange.max === undefined || collegeFee <= feeRange.max));
 
         return matchesName && matchesState && matchesCity && matchesType && matchesFee;
-      })
-      .sort((left, right) => left.name.localeCompare(right.name));
+      });
   }, [colleges, collegeSearch, collegeCityFilter, collegeFeeFilter, collegeStateFilter, collegeTypeFilter]);
 
   const hasActiveCollegeFilters = Boolean(collegeSearch.trim()) || collegeStateFilter !== 'all' || collegeCityFilter !== 'all' || collegeTypeFilter !== 'all' || collegeFeeFilter !== 'all';
