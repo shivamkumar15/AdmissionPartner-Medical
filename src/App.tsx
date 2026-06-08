@@ -3288,7 +3288,8 @@ function CollagePage() {
   const filteredColleges = useMemo(() => {
     const normalizedSearch = collegeSearch.trim().toLowerCase();
 
-    return colleges.filter((college) => {
+    return colleges
+      .filter((college) => {
         const matchesName = !normalizedSearch || college.name.toLowerCase().includes(normalizedSearch);
         const matchesState = collegeStateFilter === 'all' || college.state.toLowerCase() === collegeStateFilter.toLowerCase();
         const matchesCity = collegeCityFilter === 'all' || college.city.toLowerCase() === collegeCityFilter.toLowerCase();
@@ -3298,7 +3299,8 @@ function CollagePage() {
         const matchesFee = !feeRange || (collegeFee !== null && (feeRange.min === undefined || collegeFee >= feeRange.min) && (feeRange.max === undefined || collegeFee <= feeRange.max));
 
         return matchesName && matchesState && matchesCity && matchesType && matchesFee;
-      });
+      })
+      .sort((left, right) => left.name.localeCompare(right.name));
   }, [colleges, collegeSearch, collegeCityFilter, collegeFeeFilter, collegeStateFilter, collegeTypeFilter]);
 
   const hasActiveCollegeFilters = Boolean(collegeSearch.trim()) || collegeStateFilter !== 'all' || collegeCityFilter !== 'all' || collegeTypeFilter !== 'all' || collegeFeeFilter !== 'all';
