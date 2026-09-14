@@ -890,3 +890,76 @@ select {
     -webkit-backdrop-filter: none;
   }
 }
+
+/* Urban jungle hero (motionsites.ai urban-jungle-hero) */
+.jungle-root {
+  background: #000;
+}
+
+.jungle-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+.jungle-marquee {
+  animation: jungle-marquee 20s linear infinite;
+}
+
+.jungle-marquee:hover {
+  animation-play-state: paused;
+}
+
+.jungle-leaf {
+  transform-origin: 50% 100%;
+  animation: jungle-sway 7s ease-in-out infinite;
+  filter: blur(0.6px);
+}
+
+.jungle-mist {
+  animation: jungle-drift 11s ease-in-out infinite;
+}
+
+@keyframes jungle-sway {
+  0%,
+  100% {
+    rotate: -4deg;
+  }
+
+  50% {
+    rotate: 4deg;
+  }
+}
+
+@keyframes jungle-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.7;
+  }
+
+  50% {
+    transform: translate3d(40px, -18px, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes jungle-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jungle-marquee {
+    animation: none;
+  }
+
+  .jungle-leaf,
+  .jungle-mist {
+    animation: none;
+  }
+}

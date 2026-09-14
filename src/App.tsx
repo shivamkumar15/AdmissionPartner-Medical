@@ -13,7 +13,7 @@ const FADE_OUT_THRESHOLD_SECONDS = 0.55;
 const MOTION_EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? '';
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL ?? '').trim().toLowerCase();
 const FEEDBACK_TABLE = 'feedbacks';
 const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 const isAdminConfigured = Boolean(ADMIN_EMAIL);
@@ -1395,6 +1395,15 @@ function AnimatedFilterSelect({ label, onChange, options, value }: { label: stri
 
 function CollegeImage({ images, name }: { images: string[]; name: string }) {
   const [imageIndex, setImageIndex] = useState(0);
+  const source = images[imageIndex] ?? images[0] ?? '';
+
+  if (!source) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-white/5 px-6 text-center text-xs uppercase tracking-[0.24em] text-white/50">
+        Photo unavailable
+      </div>
+    );
+  }
 
   return (
     <img
@@ -1404,7 +1413,7 @@ function CollegeImage({ images, name }: { images: string[]; name: string }) {
       onError={() => {
         setImageIndex((currentIndex) => (currentIndex < images.length - 1 ? currentIndex + 1 : currentIndex));
       }}
-      src={images[imageIndex]}
+      src={source}
     />
   );
 }
@@ -1412,6 +1421,14 @@ function CollegeImage({ images, name }: { images: string[]; name: string }) {
 function CollegePreviewImage({ alt, className, images }: { alt: string; className: string; images: string[] }) {
   const [imageIndex, setImageIndex] = useState(0);
   const source = images[imageIndex] ?? images[0] ?? '';
+
+  if (!source) {
+    return (
+      <div className={`${className} flex items-center justify-center bg-white/5 px-6 text-center text-xs uppercase tracking-[0.24em] text-white/50`}>
+        Photo unavailable
+      </div>
+    );
+  }
 
   return (
     <img
@@ -1546,12 +1563,58 @@ function CollegeDetailsModal({ college, onClose }: { college: CollageCollege; on
   );
 }
 
+function JungleLeaves() {
+  const leaves = [
+    { className: '-left-10 top-24 w-36 rotate-[-18deg] text-emerald-500/30 sm:w-48', delay: '0s' },
+    { className: '-left-14 bottom-40 w-52 rotate-[14deg] text-emerald-700/40 sm:w-72', delay: '1.2s' },
+    { className: '-right-10 top-44 w-44 rotate-[16deg] text-lime-400/20 sm:w-60', delay: '0.6s' },
+    { className: '-right-12 bottom-28 w-40 rotate-[-12deg] text-emerald-600/30 sm:w-56', delay: '1.8s' },
+    { className: 'left-[8%] top-16 w-20 rotate-[24deg] text-emerald-400/20 sm:w-28', delay: '2.4s' },
+    { className: 'right-[10%] top-20 w-24 rotate-[-24deg] text-emerald-300/20 sm:w-32', delay: '0.9s' },
+  ];
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* top canopy shade */}
+      <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,rgba(4,32,22,0.85),transparent)]" />
+      {leaves.map((leaf, index) => (
+        <svg
+          key={index}
+          viewBox="0 0 120 200"
+          className={`jungle-leaf absolute ${leaf.className}`}
+          style={{ animationDelay: leaf.delay }}
+        >
+          <path d="M60 4C100 50 108 130 60 196 12 130 20 50 60 4Z" fill="currentColor" />
+          <path d="M60 16V184" stroke="rgba(0,0,0,0.35)" strokeWidth="3" strokeLinecap="round" />
+          <path d="M60 50 88 70M60 80 92 102M60 110 90 132M60 50 32 70M60 80 28 102M60 110 30 132" stroke="rgba(0,0,0,0.25)" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      ))}
+      {/* drifting mist */}
+      <div className="jungle-mist absolute left-[10%] top-[30%] h-40 w-[420px] rounded-full bg-emerald-100/10 blur-[100px]" />
+      <div className="jungle-mist absolute bottom-[24%] right-[6%] h-48 w-[460px] rounded-full bg-white/[0.07] blur-[110px]" style={{ animationDelay: '3s' }} />
+    </div>
+  );
+}
+
 function CinematicHeroSection() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const fadingOutRef = useRef(false);
   const restartTimeoutRef = useRef<number | null>(null);
   const [heroEmail, setHeroEmail] = useState('');
+  // Urban-jungle scroll-driven layers (motionsites.ai urban-jungle-hero)
+  const jungleRootRef = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress: jungleProgress } = useScroll({
+    target: jungleRootRef,
+    offset: ['start start', 'end end'],
+  });
+  const heroTextY = useTransform(jungleProgress, [0, 0.35], [0, -140]);
+  const heroTextScale = useTransform(jungleProgress, [0, 0.35], [1, 0.88]);
+  const heroTextOpacity = useTransform(jungleProgress, [0, 0.3], [1, 0]);
+  const videoScale = useTransform(jungleProgress, [0, 1], [1, 1.18]);
+  const videoDim = useTransform(jungleProgress, [0, 0.6], [0.12, 0.6]);
+  const glassPanelY = useTransform(jungleProgress, [0.45, 0.75], ['60vh', '0vh']);
+  const glassPanelOpacity = useTransform(jungleProgress, [0.45, 0.62], [0, 1]);
 
   const goToAppointment = (email = heroEmail) => {
     const trimmedEmail = email.trim();
@@ -1667,134 +1730,184 @@ function CinematicHeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-screen overflow-hidden bg-black">
-      <video
-        ref={videoRef}
-        autoPlay
-        className="absolute inset-0 h-full w-full translate-y-[17%] object-cover"
-        muted
-        playsInline
-        preload="auto"
-        src={VIDEO_URL}
-        style={{ willChange: 'opacity, transform' }}
-      />
-
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_44%),linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0.12))]" />
-
-      <div className="relative flex min-h-screen flex-col">
-        <nav className="relative z-20 px-6 py-6">
-          <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 rounded-[32px] px-4 py-3 md:flex-row md:justify-between md:px-6">
-            <a className="flex items-center gap-3 text-lg font-semibold text-white" href="#">
-              <img alt="Admission Partner logo" className="h-11 w-11 rounded-full object-cover" src={logoImage} />
-              <span>Admission Partner</span>
-            </a>
-
-            <div className="hidden md:block">
-              <GradientNavMenu items={mainNavItems} />
-            </div>
-
-            <div className="flex md:hidden">
-              <GradientNavMenu items={mainNavItems.slice(1)} />
-            </div>
-          </div>
-        </nav>
-
-        <main className="relative z-10 flex flex-1 -translate-y-[20%] flex-col items-center justify-center px-6 py-12 text-center">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[720px] max-w-full -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.22),rgba(255,255,255,0.08)_38%,transparent_72%)] blur-3xl" />
-
-          <h1
-            className="relative mb-8 whitespace-nowrap text-5xl tracking-tight text-white md:text-6xl lg:text-7xl"
-            style={{
-              fontFamily: "'Instrument Serif', serif",
-              textShadow: '0 4px 18px rgba(0, 0, 0, 0.3), 0 0 28px rgba(255, 255, 255, 0.16)',
-            }}
-          >
-            Admission Partner
-          </h1>
-
-          <div className="relative w-full max-w-xl space-y-4">
-            <form
-              className="liquid-glass relative z-20 flex items-center gap-3 rounded-full py-2 pl-6 pr-2 shadow-[0_0_30px_rgba(255,255,255,0.08)]"
-              onSubmit={handleHeroEmailSubmit}
-            >
-              <input
-                className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-white/40"
-                name="hero-email"
-                onChange={(event) => setHeroEmail(event.target.value)}
-                placeholder="Enter your email"
-                required
-                type="email"
-                value={heroEmail}
-              />
-              <button
-                aria-label="Submit email"
-                className="rounded-full bg-white p-3 text-black"
-                onClick={(event) => {
-                  event.preventDefault();
-                  const emailInput = event.currentTarget.form?.elements.namedItem('hero-email') as HTMLInputElement | null;
-                  goToAppointment(emailInput?.value ?? heroEmail);
-                }}
-                type="submit"
-              >
-                <ArrowRight size={20} />
-              </button>
-            </form>
-
-            <p className="px-4 text-sm leading-relaxed text-white" style={{ textShadow: '0 2px 12px rgba(0, 0, 0, 0.28)' }}>
-              Expert counselling for MBBS admissions in top medical colleges with complete support for counselling, documentation, and career guidance.</p>
-
-            <div className="flex justify-center">
-              <button
-                className="liquid-glass rounded-full px-8 py-3 text-sm font-medium text-white shadow-[0_0_26px_rgba(255,255,255,0.1)] transition-colors hover:bg-white/5"
-                onClick={() => goToAppointment()}
-                type="button"
-              >
-                Talk to Expert counsellor
-              </button>
-            </div>
-          </div>
-        </main>
-
-        <footer className="relative z-10 flex flex-wrap justify-center gap-4 px-6 pb-12">
-          <a
-            aria-label="WhatsApp"
-            className="rounded-full border border-white/15 bg-black/20 p-4 text-white/80 transition-all hover:bg-white/5 hover:text-white"
-            href="https://wa.me/919540108254"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <MessageCircle size={20} />
-          </a>
-          <a
-            aria-label="Instagram"
-            className="rounded-full border border-white/15 bg-black/20 p-4 text-white/80 transition-all hover:bg-white/5 hover:text-white"
-            href="https://www.instagram.com/admissionpartner"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <Instagram size={20} />
-          </a>
-          <a
-            aria-label="Facebook"
-            className="rounded-full border border-white/15 bg-black/20 p-4 text-white/80 transition-all hover:bg-white/5 hover:text-white"
-            href="https://www.facebook.com/admissionpartnr/"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <Facebook size={20} />
-          </a>
-          <a
-            aria-label="LinkedIn"
-            className="rounded-full border border-white/15 bg-black/20 p-4 text-white/80 transition-all hover:bg-white/5 hover:text-white"
-            href="https://www.linkedin.com/company/admission-partner/about/"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <Linkedin size={20} />
-          </a>
-        </footer>
+    <div ref={jungleRootRef} className="jungle-root relative h-[500vh] bg-black text-white">
+      {/* LAYER 1: sticky scroll video background with urban-jungle grade */}
+      <div className="sticky top-0 h-screen overflow-hidden">
+        <motion.video
+          ref={videoRef}
+          autoPlay
+          className="absolute inset-0 h-full w-full object-cover"
+          loop
+          muted
+          playsInline
+          preload="auto"
+          src={VIDEO_URL}
+          style={{ scale: videoScale, willChange: 'transform' }}
+        />
+        {/* jungle grade: light enough to see the video, dark at edges for text */}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,8,0.55)_0%,rgba(2,12,8,0.12)_32%,rgba(2,12,8,0.10)_55%,rgba(0,0,0,0.88)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_42%,rgba(0,0,0,0.42)_100%)]" />
+        <div className="pointer-events-none absolute -left-24 top-1/4 h-[420px] w-[420px] rounded-full bg-emerald-500/20 blur-[120px]" />
+        <div className="pointer-events-none absolute -right-24 bottom-1/4 h-[380px] w-[380px] rounded-full bg-lime-400/10 blur-[120px]" />
+        <JungleLeaves />
+        {/* scroll-driven dim */}
+        <motion.div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: videoDim }} />
+        {/* film grain */}
+        <div className="jungle-grain pointer-events-none absolute inset-0 opacity-[0.14]" />
       </div>
-    </section>
+
+      {/* LAYER 4: floating pill navigation */}
+      <nav className="fixed left-1/2 top-4 z-50 w-[min(94vw,880px)] -translate-x-1/2 md:top-6">
+        <div className="flex items-center justify-between gap-3 rounded-full border border-white/15 bg-black/45 py-2 pl-3 pr-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <a className="flex items-center gap-2.5" href="/">
+            <img alt="Admission Partner logo" className="h-9 w-9 rounded-full border border-white/20 object-cover" src={logoImage} />
+            <span className="hidden text-[11px] font-bold uppercase tracking-[0.24em] text-white sm:block">
+              Admission Partner
+            </span>
+          </a>
+          <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.22em] sm:gap-2 sm:text-[11px]">
+            <a className="rounded-full px-3 py-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white" href="/">
+              Home
+            </a>
+            <a className="hidden rounded-full px-3 py-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white sm:block" href="/#jack-about">
+              About
+            </a>
+            <a className="rounded-full px-3 py-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white" href="/collage">
+              Colleges
+            </a>
+            <a className="rounded-full bg-white px-4 py-2 text-black transition-opacity hover:opacity-85" href="/book-appointment">
+              Contact
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* LAYER 2: floating hero text (fades on scroll) */}
+      <motion.main
+        className="absolute left-0 top-0 flex h-screen w-full flex-col items-center justify-center px-5 pt-20 text-center"
+        style={{ y: heroTextY, scale: heroTextScale, opacity: heroTextOpacity, willChange: 'transform, opacity' }}
+      >
+        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-200 backdrop-blur-md sm:text-xs">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-300" />
+          MBBS admissions • Since 2009
+        </p>
+        <h1
+          className="mx-auto w-full max-w-[1000px] text-[clamp(2.9rem,9vw,6.5rem)] leading-[0.95] tracking-tight md:text-8xl lg:text-[104px]"
+          style={{ fontFamily: "'Instrument Serif', serif", textShadow: '0 10px 60px rgba(0,0,0,0.6)' }}
+        >
+          Unleash Your
+          <br />
+          <span className="italic text-emerald-200">Medical</span> Future
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
+          Expert counselling for MBBS admissions in top medical colleges — counselling, documentation, and career guidance under one canopy.
+        </p>
+
+        <form
+          className="liquid-glass relative z-20 mx-auto mt-6 flex w-full max-w-xl items-center gap-3 rounded-full py-2 pl-6 pr-2"
+          onSubmit={handleHeroEmailSubmit}
+        >
+          <input
+            className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-white/40"
+            name="hero-email"
+            onChange={(event) => setHeroEmail(event.target.value)}
+            placeholder="Enter your email"
+            required
+            type="email"
+            value={heroEmail}
+          />
+          <button
+            aria-label="Submit email"
+            className="rounded-full bg-white p-3 text-black transition-transform hover:scale-105"
+            onClick={(event) => {
+              event.preventDefault();
+              const emailInput = event.currentTarget.form?.elements.namedItem('hero-email') as HTMLInputElement | null;
+              goToAppointment(emailInput?.value ?? heroEmail);
+            }}
+            type="submit"
+          >
+            <ArrowRight size={20} />
+          </button>
+        </form>
+
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[11px] font-bold uppercase tracking-[0.24em] text-white/60">
+          <span><span className="text-base font-black text-white sm:text-xl">500+</span> colleges</span>
+          <span><span className="text-base font-black text-white sm:text-xl">8000+</span> admissions</span>
+          <span className="hidden sm:inline"><span className="text-base font-black text-white sm:text-xl">15+</span> years</span>
+        </div>
+
+        <div className="mt-8 hidden flex-col items-center gap-2 text-white/50 sm:flex">
+          <span className="text-[10px] font-bold uppercase tracking-[0.32em]">Scroll to explore</span>
+          <ChevronDown className="h-5 w-5 animate-bounce" aria-hidden="true" />
+        </div>
+      </motion.main>
+
+      {/* LAYER 3: glass About panel sliding up at the bottom of the scroll */}
+      <motion.div
+        className="absolute bottom-0 left-0 flex h-screen w-full items-end justify-center px-4 pb-6 sm:px-8"
+        style={{ y: glassPanelY, opacity: glassPanelOpacity, willChange: 'transform, opacity' }}
+      >
+        <div className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[32px] border border-white/15 bg-white/[0.07] shadow-[0_40px_120px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+          <div className="px-6 pb-0 pt-6 text-center sm:px-10 md:pt-8">
+            <p className="font-serif text-lg italic text-white/70 md:text-xl">About Us</p>
+            <h2 className="mx-auto mt-3 w-full max-w-[900px] text-[1.6rem] leading-[1.15] tracking-tight text-white sm:text-4xl md:text-[2.75rem]" style={{ fontFamily: "'Instrument Serif', serif" }}>
+              We transform confusing <span className="italic text-emerald-200">admissions</span> into thriving
+              medical careers. Wild <span className="italic text-emerald-200">dreams</span>, guided to real
+              campuses. Experience the <span className="italic text-lime-200">bloom</span>.
+            </h2>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <a
+                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-black transition-opacity hover:opacity-85"
+                href="/collage"
+              >
+                Explore colleges <ArrowRight className="h-4 w-4" />
+              </a>
+              <a
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/10"
+                href="https://wa.me/919540108254"
+                rel="noreferrer"
+                target="_blank"
+              >
+                <MessageCircle size={16} /> WhatsApp us
+              </a>
+            </div>
+            <div className="mt-5 flex items-center justify-center gap-3">
+              {[
+                { label: 'Instagram', href: 'https://www.instagram.com/admissionpartner', Icon: Instagram },
+                { label: 'Facebook', href: 'https://www.facebook.com/admissionpartnr/', Icon: Facebook },
+                { label: 'LinkedIn', href: 'https://www.linkedin.com/company/admission-partner/about/', Icon: Linkedin },
+              ].map(({ label, href, Icon }) => (
+                <a
+                  key={label}
+                  aria-label={label}
+                  className="rounded-full border border-white/15 bg-black/30 p-2.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                  href={href}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <Icon size={16} />
+                </a>
+              ))}
+            </div>
+          </div>
+          {/* text-logo marquee */}
+          <div className="mt-6 overflow-hidden border-t border-white/10 py-4">
+            <div className="jungle-marquee flex w-max items-center gap-12 pr-12">
+              {[...Array(4)].flatMap((_, copy) =>
+                ['AIIMS', 'CMC VELLORE', 'JIPMER', 'PGIMER', 'KMC MANIPAL', 'MAMC', 'AFMC'].map((brand) => (
+                  <span
+                    key={`${copy}-${brand}`}
+                    className="whitespace-nowrap font-sans text-sm font-semibold uppercase tracking-[0.28em] text-white opacity-40 transition-opacity duration-300 hover:opacity-100"
+                  >
+                    {brand}
+                  </span>
+                )),
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -1847,7 +1960,7 @@ function MarqueeRow({
 
 function MarqueeSection() {
   return (
-    <section className="portfolio-shell bg-[#0C0C0C] pb-10 pt-24 sm:pt-32 md:pt-40">
+    <section className="portfolio-shell border-t border-emerald-300/10 bg-black pb-10 pt-24 sm:pt-32 md:pt-40">
       <div className="flex flex-col gap-3">
         <MarqueeRow colleges={marqueeColleges.slice(0, 5)} direction="right" />
         <MarqueeRow colleges={marqueeColleges.slice(5)} direction="left" />
@@ -1860,7 +1973,7 @@ function AboutSection() {
   return (
     <section
       id="jack-about"
-      className="portfolio-shell relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0C0C0C] px-5 py-20 sm:px-8 md:px-10"
+      className="portfolio-shell relative flex min-h-screen scroll-mt-24 items-center justify-center overflow-hidden bg-black px-5 py-20 sm:px-8 md:px-10"
     >
       {aboutDecorations.map((item) => (
         <FadeIn key={item.src} className={`absolute ${item.className}`} delay={item.delay} duration={0.9} x={item.x} y={0}>
@@ -2289,7 +2402,7 @@ function TopCollegeCard({
   // Transition scale from 1.0 to targetScale only after the card becomes sticky (around scroll progress 0.48)
   const scale = useTransform(scrollYProgress, [0, 0.48, 1], [1, 1, targetScale]);
   const uniqueImages = [...new Set(college.images)].filter(Boolean);
-  const imageA = [uniqueImages[0]];
+  const imageA = [uniqueImages[0]].filter((image): image is string => Boolean(image));
   const imageB = [uniqueImages[1], uniqueImages[2], uniqueImages[0]].filter(Boolean);
   const imageC = [uniqueImages[2], uniqueImages[1], uniqueImages[0]].filter(Boolean);
 
@@ -2338,7 +2451,7 @@ function ProjectsSection() {
   return (
     <section
       id="jack-projects"
-      className="portfolio-shell relative z-10 -mt-10 rounded-t-[40px] bg-[#0C0C0C] px-5 py-20 sm:-mt-12 sm:rounded-t-[50px] sm:px-8 md:-mt-14 md:rounded-t-[60px] md:px-10 md:py-28"
+      className="portfolio-shell relative z-10 -mt-10 rounded-t-[40px] border-t border-emerald-300/10 bg-black px-5 py-20 sm:-mt-12 sm:rounded-t-[50px] sm:px-8 md:-mt-14 md:rounded-t-[60px] md:px-10 md:py-28"
     >
       <FadeIn delay={0} y={40}>
         <h2 className="hero-heading mb-14 text-center text-[clamp(3rem,12vw,160px)] font-black uppercase leading-none tracking-tight sm:mb-16 md:mb-20">
@@ -2377,6 +2490,12 @@ function BookAppointmentSection() {
     setLoading(true);
     setError('');
     setSuccess('');
+
+    if (!form.preferredDate) {
+      setError('Please select a preferred date for your appointment.');
+      setLoading(false);
+      return;
+    }
 
     if (form.preferredDate < todayDate) {
       setError('Please select today or a future date for your appointment.');
@@ -2579,7 +2698,7 @@ function AdminPage() {
 
     try {
       const rows = await fetchAppointments();
-      setAppointments(rows.filter((row) => (row.admin_email ?? ADMIN_EMAIL).toLowerCase() === ADMIN_EMAIL));
+      setAppointments(rows.filter((row) => (row.admin_email ?? ADMIN_EMAIL).trim().toLowerCase() === ADMIN_EMAIL));
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Could not load appointments.');
       setAppointments([]);
@@ -2938,10 +3057,10 @@ function AdminPage() {
                       <motion.thead animate={{ opacity: 1 }} initial={{ opacity: 0 }} transition={{ duration: 0.5 }}>
                         <tr className="border-b border-slate-200">
                           <th className="w-12 p-4 font-medium text-slate-500" scope="col">No</th>
-                          <th className="p-4 font-medium text-slate-500" scope="col">Task</th>
-                          <th className="p-4 font-medium text-slate-500" scope="col">Category</th>
+                          <th className="p-4 font-medium text-slate-500" scope="col">Student</th>
+                          <th className="p-4 font-medium text-slate-500" scope="col">Contact</th>
                           <th className="p-4 font-medium text-slate-500" scope="col">Status</th>
-                          <th className="p-4 text-right font-medium text-slate-500" scope="col">Due Date</th>
+                          <th className="p-4 text-right font-medium text-slate-500" scope="col">Preferred Date</th>
                         </tr>
                       </motion.thead>
 
@@ -3377,57 +3496,38 @@ function CollagePage() {
         ) : null}
 
         {!loading && !error ? (
-          <section className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredColleges.map((college) => (
-              <article key={college.id} className="group overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
-                <div className="relative h-64 overflow-hidden bg-white/5">
-                  {college.imageSources.length ? (
-                    <CollegeImage images={college.imageSources} name={college.name} />
-                  ) : (
-                    <div className="flex h-full items-center justify-center bg-[radial-gradient(circle,rgba(255,255,255,0.12),rgba(255,255,255,0.04)_55%,transparent_100%)] px-6 text-center text-sm uppercase tracking-[0.24em] text-white/50">
-                      Photo unavailable
-                    </div>
-                  )}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0C0C0C] via-[#0C0C0C]/15 to-transparent" />
-                </div>
-
-                <div className="space-y-4 p-6">
+          <section className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
+            {filteredColleges.map((college, index) => (
+              <button
+                key={college.id}
+                className="group flex w-full flex-col gap-4 border-t border-white/10 px-5 py-5 text-left transition-colors first:border-t-0 hover:bg-white/[0.07] sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                onClick={() => setSelectedCollege(college)}
+                type="button"
+              >
+                <div className="flex gap-4">
+                  <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-xs font-semibold text-white/55">
+                    {index + 1}
+                  </span>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">{college.sourceTable}</p>
-                    <h2 className="mt-2 text-2xl font-semibold leading-tight text-white">{college.name}</h2>
-                    <p className="mt-2 text-sm uppercase tracking-[0.22em] text-white/60">{college.state}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-sm text-white/75">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Fees</p>
-                      <p className="mt-2 font-medium text-white">{college.fees || 'Not available'}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">Established</p>
-                      <p className="mt-2 font-medium text-white">{college.year || 'Not available'}</p>
-                    </div>
-                  </div>
-
-                  {college.type ? (
-                    <div className="inline-flex rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium uppercase tracking-[0.22em] text-white/70">
-                      {college.type}
-                    </div>
-                  ) : null}
-
-                  <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
-                    <p className="text-sm leading-relaxed text-white/55">Open a larger view to read the full college snapshot.</p>
-                    <button
-                      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0C0C0C] transition-opacity hover:opacity-90"
-                      onClick={() => setSelectedCollege(college)}
-                      type="button"
-                    >
-                      More Details
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
+                    <h2 className="text-xl font-semibold leading-tight text-white sm:text-2xl">{college.name}</h2>
+                    <p className="mt-2 text-sm uppercase tracking-[0.2em] text-white/55">
+                      {[college.city, college.state].filter(Boolean).join(', ') || 'Location not available'}
+                    </p>
                   </div>
                 </div>
-              </article>
+
+                <div className="flex flex-wrap items-center gap-3 pl-[52px] sm:justify-end sm:pl-0">
+                  {college.type ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-white/65">
+                      {college.type}
+                    </span>
+                  ) : null}
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#0C0C0C] transition-opacity group-hover:opacity-90">
+                    View Details
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </button>
             ))}
           </section>
         ) : null}
