@@ -1564,10 +1564,13 @@ function CinematicHeroSection() {
     target: jungleRootRef,
     offset: ['start start', 'end end'],
   });
-  const heroTextY = useTransform(jungleProgress, [0, 0.3], [0, -160]);
-  const heroTextOpacity = useTransform(jungleProgress, [0, 0.28], [1, 0]);
+  const heroTextY = useTransform(jungleProgress, [0.05, 0.42], [60, -160]);
+  const heroTextOpacity = useTransform(jungleProgress, [0.05, 0.16, 0.3, 0.42], [0, 1, 1, 0]);
   const bgScale = useTransform(jungleProgress, [0, 1], [1, 1.15]);
   const bgDim = useTransform(jungleProgress, [0, 0.6], [0, 0.55]);
+  const doorLeftX = useTransform(jungleProgress, [0, 0.18], ['0%', '-102%']);
+  const doorRightX = useTransform(jungleProgress, [0, 0.18], ['0%', '102%']);
+  const openHintOpacity = useTransform(jungleProgress, [0, 0.08], [1, 0]);
   const glassPanelY = useTransform(jungleProgress, [0.45, 0.75], ['60vh', '0vh']);
   const glassPanelOpacity = useTransform(jungleProgress, [0.45, 0.62], [0, 1]);
 
