@@ -4,12 +4,7 @@ import { type CSSProperties, type ElementType, type FormEvent, type ReactNode, u
 import { createClient, type Session } from '@supabase/supabase-js';
 import logoImage from '../Logo.jpg';
 
-const VIDEO_URL =
-  'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_115001_bcdaa3b4-03de-47e7-ad63-ae3e392c32d4.mp4';
-const MEDIA_CACHE_WORKER_URL = '/media-cache-worker.js';
-const FADE_DURATION_MS = 500;
-const LOOP_RESET_DELAY_MS = 100;
-const FADE_OUT_THRESHOLD_SECONDS = 0.55;
+const JUNGLE_HERO_IMAGE = '/urban-jungle-hero.webp';
 const MOTION_EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -27,24 +22,6 @@ function getSupabaseConfig() {
     key: SUPABASE_PUBLISHABLE_KEY,
     url: SUPABASE_URL,
   };
-}
-
-function registerMediaCacheWorker() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-    return;
-  }
-
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register(MEDIA_CACHE_WORKER_URL)
-      .then((registration) => navigator.serviceWorker.ready.then(() => registration.active ?? navigator.serviceWorker.controller))
-      .then((worker) => {
-        worker?.postMessage({ type: 'CACHE_HERO_VIDEO', url: VIDEO_URL });
-      })
-      .catch(() => {
-        // Media cache is an enhancement; the hero video still works without it.
-      });
-  }, { once: true });
 }
 
 const supabase = isSupabaseConfigured ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
@@ -1563,44 +1540,23 @@ function CollegeDetailsModal({ college, onClose }: { college: CollageCollege; on
   );
 }
 
-function JungleLeaves() {
-  const leaves = [
-    { className: '-left-10 top-24 w-36 rotate-[-18deg] text-emerald-500/30 sm:w-48', delay: '0s' },
-    { className: '-left-14 bottom-40 w-52 rotate-[14deg] text-emerald-700/40 sm:w-72', delay: '1.2s' },
-    { className: '-right-10 top-44 w-44 rotate-[16deg] text-lime-400/20 sm:w-60', delay: '0.6s' },
-    { className: '-right-12 bottom-28 w-40 rotate-[-12deg] text-emerald-600/30 sm:w-56', delay: '1.8s' },
-    { className: 'left-[8%] top-16 w-20 rotate-[24deg] text-emerald-400/20 sm:w-28', delay: '2.4s' },
-    { className: 'right-[10%] top-20 w-24 rotate-[-24deg] text-emerald-300/20 sm:w-32', delay: '0.9s' },
-  ];
-
+function JungleHeadlineLine({ gothicFirst, rest, gothicSecond, restSecond }: { gothicFirst: string; rest: string; gothicSecond?: string; restSecond?: string }) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {/* top canopy shade */}
-      <div className="absolute inset-x-0 top-0 h-44 bg-[linear-gradient(180deg,rgba(4,32,22,0.85),transparent)]" />
-      {leaves.map((leaf, index) => (
-        <svg
-          key={index}
-          viewBox="0 0 120 200"
-          className={`jungle-leaf absolute ${leaf.className}`}
-          style={{ animationDelay: leaf.delay }}
-        >
-          <path d="M60 4C100 50 108 130 60 196 12 130 20 50 60 4Z" fill="currentColor" />
-          <path d="M60 16V184" stroke="rgba(0,0,0,0.35)" strokeWidth="3" strokeLinecap="round" />
-          <path d="M60 50 88 70M60 80 92 102M60 110 90 132M60 50 32 70M60 80 28 102M60 110 30 132" stroke="rgba(0,0,0,0.25)" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      ))}
-      {/* drifting mist */}
-      <div className="jungle-mist absolute left-[10%] top-[30%] h-40 w-[420px] rounded-full bg-emerald-100/10 blur-[100px]" />
-      <div className="jungle-mist absolute bottom-[24%] right-[6%] h-48 w-[460px] rounded-full bg-white/[0.07] blur-[110px]" style={{ animationDelay: '3s' }} />
-    </div>
+    <span className="block">
+      <span className="font-jungle-gothic font-normal">{gothicFirst}</span>
+      {rest}
+      {gothicSecond ? (
+        <>
+          {' '}
+          <span className="font-jungle-gothic font-normal">{gothicSecond}</span>
+          {restSecond}
+        </>
+      ) : null}
+    </span>
   );
 }
 
 function CinematicHeroSection() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const fadingOutRef = useRef(false);
-  const restartTimeoutRef = useRef<number | null>(null);
   const [heroEmail, setHeroEmail] = useState('');
   // Urban-jungle scroll-driven layers (motionsites.ai urban-jungle-hero)
   const jungleRootRef = useRef<HTMLDivElement | null>(null);
@@ -1608,11 +1564,10 @@ function CinematicHeroSection() {
     target: jungleRootRef,
     offset: ['start start', 'end end'],
   });
-  const heroTextY = useTransform(jungleProgress, [0, 0.35], [0, -140]);
-  const heroTextScale = useTransform(jungleProgress, [0, 0.35], [1, 0.88]);
-  const heroTextOpacity = useTransform(jungleProgress, [0, 0.3], [1, 0]);
-  const videoScale = useTransform(jungleProgress, [0, 1], [1, 1.18]);
-  const videoDim = useTransform(jungleProgress, [0, 0.6], [0.12, 0.6]);
+  const heroTextY = useTransform(jungleProgress, [0, 0.3], [0, -160]);
+  const heroTextOpacity = useTransform(jungleProgress, [0, 0.28], [1, 0]);
+  const bgScale = useTransform(jungleProgress, [0, 1], [1, 1.15]);
+  const bgDim = useTransform(jungleProgress, [0, 0.6], [0, 0.55]);
   const glassPanelY = useTransform(jungleProgress, [0.45, 0.75], ['60vh', '0vh']);
   const glassPanelOpacity = useTransform(jungleProgress, [0.45, 0.62], [0, 1]);
 
@@ -1627,219 +1582,70 @@ function CinematicHeroSection() {
     goToAppointment(typeof submittedEmail === 'string' ? submittedEmail : heroEmail);
   };
 
-  useEffect(() => {
-    const video = videoRef.current;
-
-    if (!video) {
-      return undefined;
-    }
-
-    const cancelFade = () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-    };
-
-    const fadeTo = (targetOpacity: number, duration: number, onComplete?: () => void) => {
-      cancelFade();
-
-      const startOpacity = Number.parseFloat(video.style.opacity || '0');
-      const startTime = performance.now();
-
-      const step = (timestamp: number) => {
-        const progress = Math.min((timestamp - startTime) / duration, 1);
-        const nextOpacity = startOpacity + (targetOpacity - startOpacity) * progress;
-        video.style.opacity = String(nextOpacity);
-
-        if (progress < 1) {
-          animationFrameRef.current = requestAnimationFrame(step);
-          return;
-        }
-
-        animationFrameRef.current = null;
-        video.style.opacity = String(targetOpacity);
-        onComplete?.();
-      };
-
-      animationFrameRef.current = requestAnimationFrame(step);
-    };
-
-    const playAndFadeIn = async () => {
-      fadingOutRef.current = false;
-
-      try {
-        await video.play();
-      } catch {
-        return;
-      }
-
-      fadeTo(1, FADE_DURATION_MS);
-    };
-
-    const handleLoadedData = () => {
-      video.style.opacity = video.style.opacity || '0';
-      void playAndFadeIn();
-    };
-
-    const handleTimeUpdate = () => {
-      const remainingTime = video.duration - video.currentTime;
-
-      if (!Number.isFinite(remainingTime) || remainingTime > FADE_OUT_THRESHOLD_SECONDS) {
-        return;
-      }
-
-      if (fadingOutRef.current) {
-        return;
-      }
-
-      fadingOutRef.current = true;
-      fadeTo(0, FADE_DURATION_MS);
-    };
-
-    const handleEnded = () => {
-      cancelFade();
-      video.style.opacity = '0';
-
-      restartTimeoutRef.current = window.setTimeout(() => {
-        video.currentTime = 0;
-        void playAndFadeIn();
-      }, LOOP_RESET_DELAY_MS);
-    };
-
-    video.style.opacity = '0';
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('ended', handleEnded);
-
-    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      handleLoadedData();
-    }
-
-    return () => {
-      cancelFade();
-
-      if (restartTimeoutRef.current !== null) {
-        window.clearTimeout(restartTimeoutRef.current);
-      }
-
-      video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('ended', handleEnded);
-    };
-  }, []);
-
   return (
     <div ref={jungleRootRef} className="jungle-root relative h-[500vh] bg-black text-white">
-      {/* LAYER 1: sticky scroll video background with urban-jungle grade */}
-      <div className="sticky top-0 h-screen overflow-hidden">
-        <motion.video
-          ref={videoRef}
-          autoPlay
-          className="absolute inset-0 h-full w-full object-cover"
-          loop
-          muted
-          playsInline
-          preload="auto"
-          src={VIDEO_URL}
-          style={{ scale: videoScale, willChange: 'transform' }}
+      {/* LAYER 1: sticky jungle photograph background */}
+      <div className="sticky top-0 h-screen overflow-hidden bg-black">
+        <motion.img
+          src={JUNGLE_HERO_IMAGE}
+          alt="Subway car overgrown with lush jungle plants and flowers"
+          className="absolute inset-0 h-full w-full object-cover saturate-[1.15] contrast-[1.05]"
+          style={{ scale: bgScale, willChange: 'transform' }}
         />
-        {/* jungle grade: light enough to see the video, dark at edges for text */}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,8,0.55)_0%,rgba(2,12,8,0.12)_32%,rgba(2,12,8,0.10)_55%,rgba(0,0,0,0.88)_100%)]" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_42%,rgba(0,0,0,0.42)_100%)]" />
-        <div className="pointer-events-none absolute -left-24 top-1/4 h-[420px] w-[420px] rounded-full bg-emerald-500/20 blur-[120px]" />
-        <div className="pointer-events-none absolute -right-24 bottom-1/4 h-[380px] w-[380px] rounded-full bg-lime-400/10 blur-[120px]" />
-        <JungleLeaves />
+        {/* legibility: only a light touch top + bottom, photo stays vivid like the reference */}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,transparent_20%,transparent_55%,rgba(0,0,0,0.42)_82%,rgba(0,0,0,0.6)_100%)]" />
+        {/* LED destination sign */}
+        <div className="absolute left-1/2 top-[13%] -translate-x-1/2 sm:top-[15%]">
+          <div className="rounded-md border-2 border-black/80 bg-black px-5 py-2 shadow-[0_0_30px_rgba(255,150,0,0.35),inset_0_0_18px_rgba(0,0,0,0.9)] sm:px-7">
+            <p
+              className="font-jungle-led whitespace-nowrap text-center text-[11px] uppercase leading-tight text-amber-500 sm:text-base"
+              style={{ textShadow: '0 0 8px rgba(255,160,0,0.9), 0 0 22px rgba(255,120,0,0.5)' }}
+            >
+              Unleash your
+              <br />
+              Medical future
+            </p>
+          </div>
+        </div>
         {/* scroll-driven dim */}
-        <motion.div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: videoDim }} />
+        <motion.div className="pointer-events-none absolute inset-0 bg-black" style={{ opacity: bgDim }} />
         {/* film grain */}
-        <div className="jungle-grain pointer-events-none absolute inset-0 opacity-[0.14]" />
+        <div className="jungle-grain pointer-events-none absolute inset-0 opacity-[0.12]" />
       </div>
 
       {/* LAYER 4: floating pill navigation */}
-      <nav className="fixed left-1/2 top-4 z-50 w-[min(94vw,880px)] -translate-x-1/2 md:top-6">
-        <div className="flex items-center justify-between gap-3 rounded-full border border-white/15 bg-black/45 py-2 pl-3 pr-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <a className="flex items-center gap-2.5" href="/">
-            <img alt="Admission Partner logo" className="h-9 w-9 rounded-full border border-white/20 object-cover" src={logoImage} />
-            <span className="hidden text-[11px] font-bold uppercase tracking-[0.24em] text-white sm:block">
-              Admission Partner
-            </span>
+      <nav className="fixed left-1/2 top-4 z-50 -translate-x-1/2 md:top-6" aria-label="Primary">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <a href="/" aria-label="Admission Partner home" className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-black shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
+            <img alt="Admission Partner logo" className="h-9 w-9 rounded-full object-cover" src={logoImage} />
           </a>
-          <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.22em] sm:gap-2 sm:text-[11px]">
-            <a className="rounded-full px-3 py-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white" href="/">
-              Home
-            </a>
-            <a className="hidden rounded-full px-3 py-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white sm:block" href="/#jack-about">
-              About
-            </a>
-            <a className="rounded-full px-3 py-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white" href="/collage">
-              Colleges
-            </a>
-            <a className="rounded-full bg-white px-4 py-2 text-black transition-opacity hover:opacity-85" href="/book-appointment">
-              Contact
-            </a>
-          </div>
+          <a href="/" className="rounded-full bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 sm:px-5">
+            Home
+          </a>
+          <a href="/#jack-about" className="hidden rounded-full bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 sm:block sm:px-5">
+            About
+          </a>
+          <a href="/collage" className="rounded-full bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 sm:px-5">
+            Colleges
+          </a>
+          <a href="/book-appointment" className="rounded-full bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 sm:px-5">
+            Contact
+          </a>
         </div>
       </nav>
 
-      {/* LAYER 2: floating hero text (fades on scroll) */}
+      {/* LAYER 2: giant floating headline (fades on scroll) */}
       <motion.main
-        className="absolute left-0 top-0 flex h-screen w-full flex-col items-center justify-center px-5 pt-20 text-center"
-        style={{ y: heroTextY, scale: heroTextScale, opacity: heroTextOpacity, willChange: 'transform, opacity' }}
+        className="absolute left-0 top-0 flex h-screen w-full flex-col justify-end px-3 pb-4 sm:px-6 sm:pb-8"
+        style={{ y: heroTextY, opacity: heroTextOpacity, willChange: 'transform, opacity' }}
       >
-        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-400/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-200 backdrop-blur-md sm:text-xs">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-300" />
-          MBBS admissions • Since 2009
-        </p>
         <h1
-          className="mx-auto w-full max-w-[1000px] text-[clamp(2.9rem,9vw,6.5rem)] leading-[0.95] tracking-tight md:text-8xl lg:text-[104px]"
-          style={{ fontFamily: "'Instrument Serif', serif", textShadow: '0 10px 60px rgba(0,0,0,0.6)' }}
+          className="font-jungle-display w-full text-left text-[clamp(3.4rem,13.5vw,12rem)] uppercase leading-[0.82] tracking-tight text-white"
+          style={{ textShadow: '0 14px 90px rgba(0,0,0,0.7)' }}
         >
-          Unleash Your
-          <br />
-          <span className="italic text-emerald-200">Medical</span> Future
+          <JungleHeadlineLine gothicFirst="U" rest="NLEASH" gothicSecond="Y" restSecond="OUR" />
+          <JungleHeadlineLine gothicFirst="M" rest="EDICAL" gothicSecond="F" restSecond="UTURE" />
         </h1>
-        <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-          Expert counselling for MBBS admissions in top medical colleges — counselling, documentation, and career guidance under one canopy.
-        </p>
-
-        <form
-          className="liquid-glass relative z-20 mx-auto mt-6 flex w-full max-w-xl items-center gap-3 rounded-full py-2 pl-6 pr-2"
-          onSubmit={handleHeroEmailSubmit}
-        >
-          <input
-            className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-white/40"
-            name="hero-email"
-            onChange={(event) => setHeroEmail(event.target.value)}
-            placeholder="Enter your email"
-            required
-            type="email"
-            value={heroEmail}
-          />
-          <button
-            aria-label="Submit email"
-            className="rounded-full bg-white p-3 text-black transition-transform hover:scale-105"
-            onClick={(event) => {
-              event.preventDefault();
-              const emailInput = event.currentTarget.form?.elements.namedItem('hero-email') as HTMLInputElement | null;
-              goToAppointment(emailInput?.value ?? heroEmail);
-            }}
-            type="submit"
-          >
-            <ArrowRight size={20} />
-          </button>
-        </form>
-
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-[11px] font-bold uppercase tracking-[0.24em] text-white/60">
-          <span><span className="text-base font-black text-white sm:text-xl">500+</span> colleges</span>
-          <span><span className="text-base font-black text-white sm:text-xl">8000+</span> admissions</span>
-          <span className="hidden sm:inline"><span className="text-base font-black text-white sm:text-xl">15+</span> years</span>
-        </div>
-
-        <div className="mt-8 hidden flex-col items-center gap-2 text-white/50 sm:flex">
-          <span className="text-[10px] font-bold uppercase tracking-[0.32em]">Scroll to explore</span>
-          <ChevronDown className="h-5 w-5 animate-bounce" aria-hidden="true" />
-        </div>
       </motion.main>
 
       {/* LAYER 3: glass About panel sliding up at the bottom of the scroll */}
@@ -1871,6 +1677,30 @@ function CinematicHeroSection() {
                 <MessageCircle size={16} /> WhatsApp us
               </a>
             </div>
+            <form
+              className="mx-auto mt-6 flex w-full max-w-xl items-center gap-2 rounded-full border border-white/15 bg-black/40 p-1.5 pl-5 backdrop-blur-md"
+              onSubmit={handleHeroEmailSubmit}
+            >
+              <input
+                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40 sm:text-base"
+                name="hero-email"
+                onChange={(event) => setHeroEmail(event.target.value)}
+                placeholder="Enter your email for a free callback"
+                required
+                type="email"
+                value={heroEmail}
+              />
+              <button
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-black transition-opacity hover:opacity-85"
+                type="submit"
+              >
+                <span className="hidden sm:inline">Get callback</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </form>
+            <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.24em] text-white/50">
+              500+ colleges • 8000+ admissions • Since 2009
+            </p>
             <div className="mt-5 flex items-center justify-center gap-3">
               {[
                 { label: 'Instagram', href: 'https://www.instagram.com/admissionpartner', Icon: Instagram },
@@ -3544,10 +3374,6 @@ function CollagePage() {
 
 function App() {
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
-
-  useEffect(() => {
-    registerMediaCacheWorker();
-  }, []);
 
   if (pathname === '/collage') {
     return <CollagePage />;
