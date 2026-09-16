@@ -1564,12 +1564,11 @@ function CinematicHeroSection() {
     target: jungleRootRef,
     offset: ['start start', 'end end'],
   });
-  const heroTextY = useTransform(jungleProgress, [0.05, 0.42], [60, -160]);
-  const heroTextOpacity = useTransform(jungleProgress, [0.05, 0.16, 0.3, 0.42], [0, 1, 1, 0]);
+  const heroTextY = useTransform(jungleProgress, [0, 0.42], [0, -160]);
+  const heroTextOpacity = useTransform(jungleProgress, [0, 0.3, 0.42], [1, 1, 0]);
   const bgScale = useTransform(jungleProgress, [0, 1], [1, 1.15]);
   const bgDim = useTransform(jungleProgress, [0, 0.6], [0, 0.55]);
-  const doorLeftX = useTransform(jungleProgress, [0, 0.18], ['0%', '-102%']);
-  const doorRightX = useTransform(jungleProgress, [0, 0.18], ['0%', '102%']);
+  const doorRightX = useTransform(jungleProgress, [0, 0.18], ['78%', '102%']);
   const openHintOpacity = useTransform(jungleProgress, [0, 0.08], [1, 0]);
   const glassPanelY = useTransform(jungleProgress, [0.45, 0.75], ['60vh', '0vh']);
   const glassPanelOpacity = useTransform(jungleProgress, [0.45, 0.62], [0, 1]);
@@ -1597,6 +1596,17 @@ function CinematicHeroSection() {
         />
         {/* legibility: only a light touch top + bottom, photo stays vivid like the reference */}
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.35)_0%,transparent_20%,transparent_55%,rgba(0,0,0,0.42)_82%,rgba(0,0,0,0.6)_100%)]" />
+        {/* scroll-opening subway door (second door, parked open at the edge) */}
+        <motion.div className="pointer-events-none absolute inset-y-0 right-0 w-1/2" style={{ x: doorRightX, willChange: 'transform' }} aria-hidden="true">
+          <div className="relative h-full w-full border-l-[6px] border-black bg-[linear-gradient(260deg,#c98f00_0%,#f7b500_28%,#ffcf3d_50%,#f7b500_72%,#d99a00_100%)]">
+            <div className="absolute inset-x-0 top-0 h-10 bg-[linear-gradient(180deg,#3d3d3d,#131313)]" />
+            <div className="absolute inset-x-0 bottom-0 h-14 bg-[linear-gradient(180deg,#2b2b2b,#0e0e0e)]" />
+            <div className="absolute left-1/2 top-[20%] h-[40%] w-[36%] -translate-x-1/2 rounded-[2rem] border-4 border-black/70 bg-[linear-gradient(180deg,#08130d,#143324_60%,#1f5230)] shadow-[inset_0_0_34px_rgba(0,0,0,0.85)]">
+              <div className="absolute inset-x-4 top-3 h-10 rounded-full bg-emerald-200/15 blur-md" />
+            </div>
+            <div className="absolute inset-y-0 left-2 w-1 bg-white/25" />
+          </div>
+        </motion.div>
         {/* LED destination sign */}
         <div className="absolute left-1/2 top-[13%] -translate-x-1/2 sm:top-[15%]">
           <div className="rounded-md border-2 border-black/80 bg-black px-5 py-2 shadow-[0_0_30px_rgba(255,150,0,0.35),inset_0_0_18px_rgba(0,0,0,0.9)] sm:px-7">
@@ -1650,6 +1660,18 @@ function CinematicHeroSection() {
           <JungleHeadlineLine gothicFirst="M" rest="EDICAL" gothicSecond="F" restSecond="UTURE" />
         </h1>
       </motion.main>
+
+      {/* scroll cue sitting on the closed doors */}
+      <motion.div
+        className="pointer-events-none absolute bottom-8 left-1/2 -translate-x-1/2"
+        style={{ opacity: openHintOpacity }}
+        aria-hidden="true"
+      >
+        <div className="flex items-center gap-2 rounded-full border border-white/25 bg-black/55 px-5 py-2.5 backdrop-blur-md">
+          <ChevronDown className="h-4 w-4 animate-bounce text-amber-400" />
+          <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.3em] text-white">Scroll to explore</span>
+        </div>
+      </motion.div>
 
       {/* LAYER 3: glass About panel sliding up at the bottom of the scroll */}
       <motion.div
