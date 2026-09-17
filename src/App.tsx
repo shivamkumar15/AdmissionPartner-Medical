@@ -3,6 +3,14 @@ import { ArrowRight, BookOpen, CalendarDays, ChevronDown, ExternalLink, Facebook
 import { type CSSProperties, type ElementType, type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import logoImage from '../Logo.jpg';
+import NovaApp from './NovaApp';
+
+void CinematicHeroSection;
+void MarqueeSection;
+void AboutSection;
+void ProjectsSection;
+void ServicesSection;
+void TestimonialsSection;
 
 const JUNGLE_HERO_IMAGE = '/urban-jungle-hero.webp';
 const MOTION_EASE: [number, number, number, number] = [0.25, 0.1, 0.25, 1];
@@ -3412,16 +3420,7 @@ function App() {
     return <BookAppointmentPage />;
   }
 
-  return (
-    <main>
-      <CinematicHeroSection />
-      <MarqueeSection />
-      <AboutSection />
-      <ProjectsSection />
-      <ServicesSection />
-      <TestimonialsSection />
-    </main>
-  );
+  return <NovaApp />;
 }
 
 export default App;
