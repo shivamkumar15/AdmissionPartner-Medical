@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronRight, Hexagon } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import logoImage from '../Logo.jpg';
 
 const HERO_VIDEO_URL =
   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260729_102822_0e6c87e8-c141-4744-bf32-ad30db296371.mp4';
 const HERO_POSTER_URL = '/hero-poster.jpg';
-const PORTRAIT_URL =
-  'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260728_050334_5b076e26-0ce7-4898-b432-d764190e448f.png&w=256&q=70';
 const LERP = 0.14;
 const SETTLE_EPSILON = 0.0004;
 const SEEK_EPSILON = 0.08;
@@ -22,9 +21,21 @@ const badge =
 const textShadow = '[text-shadow:0_1px_12px_rgb(0_0_0/0.5)]';
 
 const capabilities = [
-  ['01', 'Real-time vision', 'Reads context as it happens and surfaces what matters before you ask.'],
-  ['02', 'Layered insight', 'Moves from rough outline to sharp output without losing the thread.'],
-  ['03', 'Adaptive speed', 'Learns your cadence and tightens every pass as you work.'],
+  [
+    '01',
+    'Expert medical counsellors',
+    'An experienced counselling team giving you right and authentic information.',
+  ],
+  [
+    '02',
+    'Course & college selection',
+    'Pick the right course, college and admission path based on your entrance score and ability.',
+  ],
+  [
+    '03',
+    'Support till admission',
+    '24x7 help, online counselling and step-by-step guidance through the admission procedure.',
+  ],
 ];
 
 type RevealProps = {
@@ -538,34 +549,37 @@ function ScrollVideo() {
   );
 }
 
-const NAV_LINKS = ['Projects', 'About', 'Blog', 'Contact'];
+const NAV_LINKS = [
+  { label: 'Colleges', href: '/collage' },
+  { label: 'Counselling', href: '#counselling' },
+  { label: 'Contact', href: '#contact' },
+];
 
 function Navbar() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/15 bg-[#0a0a0a]/60 [transform:translateZ(0)]">
       <nav className="flex items-center justify-between px-5 py-4 sm:px-8 md:px-12">
         <Reveal delay={0}>
-          <a href="#" className="flex items-center gap-2 text-lg font-medium tracking-tight text-white sm:text-xl">
-            <Hexagon size={24} strokeWidth={1.5} className="text-white" />
-            novaai
+          <a href="/" className="flex items-center gap-2 text-lg font-medium tracking-tight text-white sm:text-xl">
+            <img src={logoImage} alt="Admission Partner logo" className="h-7 w-7 rounded-full object-cover" />
+            Admission Partner
           </a>
         </Reveal>
         <div className="hidden items-center gap-8 md:flex lg:gap-10">
-          {NAV_LINKS.map((label, i) => (
+          {NAV_LINKS.map(({ label, href }, i) => (
             <Reveal key={label} delay={100 + i * 100}>
-              <a href="#" className="text-sm text-white/85 transition-colors duration-300 hover:text-white">
+              <a href={href} className="text-sm text-white/85 transition-colors duration-300 hover:text-white">
                 {label}
-                {label === 'Projects' && <sup className="ml-0.5 font-mono text-[10px] text-white/60">6</sup>}
               </a>
             </Reveal>
           ))}
         </div>
         <Reveal delay={500}>
           <a
-            href="#"
+            href="/book-appointment"
             className="rounded-md border border-white/20 bg-black/40 px-4 py-2 text-xs text-white transition-colors duration-300 hover:bg-black/60 sm:px-5 sm:text-sm"
           >
-            Get Free Consultation
+            Book Free Counselling
           </a>
         </Reveal>
       </nav>
@@ -583,7 +597,7 @@ export default function NovaApp() {
           <section className={shell}>
             <div className="flex flex-col justify-between gap-8 sm:flex-row">
               <div className="flex flex-col gap-2">
-                {['AI AUTOMATION', 'AI INTEGRATION', 'AI AGENT DEVELOPMENT'].map((service, i) => (
+                {['MBBS ADMISSIONS', 'EXPERT COUNSELLING', 'COLLEGE SELECTION'].map((service, i) => (
                   <Reveal key={service} delay={150 + i * 120}>
                     <p className={`font-mono text-xs uppercase tracking-[0.15em] text-white/90 ${textShadow}`}>
                       / {service}
@@ -593,28 +607,29 @@ export default function NovaApp() {
               </div>
               <Reveal delay={300} className="max-w-xs sm:text-right">
                 <p className={`text-lg leading-relaxed text-white sm:text-xl sm:leading-relaxed ${textShadow}`}>
-                  We design automation that brings clarity, precision, and efficiency to the way your company operates.
+                  We help medical aspirants choose the right course and college — and guide them through every step
+                  of admission.
                 </p>
               </Reveal>
             </div>
             <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
               <div>
                 <Reveal delay={150} className="mb-5">
-                  <span className={badge}>We Automate 100+ Businesses</span>
+                  <span className={badge}>Govt. Regd. Counselling • Estd. 2012</span>
                 </Reveal>
                 <Reveal delay={280}>
                   <h1 className={headline}>
-                    Clear. Precise.
+                    Guide. Support.
                     <br />
-                    Automated.
+                    Admit.
                   </h1>
                 </Reveal>
               </div>
               <Reveal delay={420} className="self-start md:self-auto">
                 <div id="contact" className="flex items-center gap-4 rounded-xl border border-white/10 bg-black/45 p-3">
                   <img
-                    src={PORTRAIT_URL}
-                    alt="Mitha, co-founder of NovaAI"
+                    src={logoImage}
+                    alt="Admission Partner counselling team"
                     loading="eager"
                     {...{ fetchpriority: 'low' }}
                     decoding="async"
@@ -623,15 +638,15 @@ export default function NovaApp() {
                     className="h-24 w-20 rounded-lg object-cover"
                   />
                   <div className="flex flex-col gap-1.5 pr-2">
-                    <p className="text-sm font-medium text-white">Talk with Mitha</p>
+                    <p className="text-sm font-medium text-white">Talk with our Counsellor</p>
                     <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/60">
-                      Co-founder of NovaAI
+                      Free 15-min guidance call
                     </p>
                     <a
-                      href="#contact"
+                      href="/book-appointment"
                       className="mt-1.5 inline-flex items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-medium text-black transition-colors duration-300 hover:bg-white/85"
                     >
-                      Book 15-mins call <ChevronRight size={14} />
+                      Book free call <ChevronRight size={14} />
                     </a>
                   </div>
                 </div>
@@ -639,14 +654,15 @@ export default function NovaApp() {
             </div>
           </section>
           <div className="h-[160vh]" aria-hidden="true" />
-          <section id="capability" className={shell}>
+          <section id="counselling" className={shell}>
             <div className="flex flex-col justify-between gap-8 sm:flex-row">
               <Reveal delay={120}>
-                <span className={badge}>Insight On Demand</span>
+                <span className={badge}>End-to-End Admission Support</span>
               </Reveal>
               <Reveal delay={220} className="max-w-sm sm:text-right">
                 <p className={`text-lg leading-relaxed text-white sm:text-xl sm:leading-relaxed ${textShadow}`}>
-                  Our AI doesn&apos;t just respond — it interprets, sharpens, and delivers the signal you need.
+                  We don&apos;t just advise — we shortlist colleges, plan your strategy, and stand with you till
+                  admission.
                 </p>
               </Reveal>
             </div>
@@ -654,29 +670,29 @@ export default function NovaApp() {
               <div className="max-w-xl">
                 <Reveal delay={180}>
                   <h2 className={headline}>
-                    Learn to see
+                    Secure your
                     <br />
-                    brilliantly.
+                    medical seat.
                   </h2>
                 </Reveal>
                 <Reveal delay={320} className="mt-6 max-w-md">
                   <p className={`text-sm text-white/80 sm:text-base ${textShadow}`}>
-                    From the first sketch to the final render, Nova turns raw intent into decisions your team can act on
-                    — quietly, precisely, at speed.
+                    From entrance score to final allotment, Admission Partner turns confusion into a clear roadmap —
+                    course, college and counselling, handled at every step. Patna | Kolkata.
                   </p>
                 </Reveal>
                 <Reveal delay={420} className="mt-8 flex flex-wrap gap-3">
                   <a
-                    href="#capability"
+                    href="/book-appointment"
                     className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-xs font-medium text-black transition-colors duration-300 hover:bg-white/85 sm:text-sm"
                   >
-                    Run the demo <ChevronRight size={14} />
+                    Book free counselling <ChevronRight size={14} />
                   </a>
                   <a
-                    href="#contact"
+                    href="/collage"
                     className="rounded-full border border-white/25 bg-black/35 px-5 py-2.5 text-xs transition-colors duration-300 hover:bg-black/55 sm:text-sm"
                   >
-                    Free consultation
+                    Explore colleges
                   </a>
                 </Reveal>
               </div>
